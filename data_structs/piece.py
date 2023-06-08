@@ -3,8 +3,7 @@ import hashlib
 from bclient_logger import logger
 import math
 import os
-from block import Block, BlockState
-from torrent_settings import DEFAULT_BLOCK_SIZE
+from block import Block, BlockState, DEFAULT_BLOCK_SIZE
 from disk_io import DiskIO
 
 class Piece:
@@ -22,7 +21,7 @@ class Piece:
         self.blocks: list['Block'] = self.__build_blocks()
         self.is_completed: bool = False 
         self.raw_data : bytes = b''
-        self.last_call = 0
+        # self.last_call = 0
     
     
     @property
@@ -43,6 +42,7 @@ class Piece:
     def write_block(self, offset, data):
         block_index = offset//DEFAULT_BLOCK_SIZE
 
+        #TODO: check if first condition is needed
         if not self.is_completed and not self.blocks[block_index].state == BlockState.BLOCK_FULL:
             self.blocks[block_index].data = data
             self.blocks[block_index].state = BlockState.BLOCK_FULL
@@ -65,6 +65,7 @@ class Piece:
             raw_data += block.data
         return raw_data
 
+    #TODO: Handler logger in piece manager 
     def __valid_blocks(self, raw_data):
         hash_raw_data = hashlib.sha1(raw_data).digest()
         
@@ -75,6 +76,7 @@ class Piece:
         logger.warning(f'Error Piece Hash : {hash_raw_data} != {self.piece_hash} Piece{self.piece_index}')
         return False
     
+    #TODO: Handler logger in piece manager 
     def __merge_all_blocks(self):
         raw_data = self.__merge_blocks()
         if self.__valid_blocks(raw_data):
