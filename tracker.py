@@ -31,6 +31,9 @@ class Tracker:
             if self.database[pieces_sha1].contains((ip, port)):
                 self.database[pieces_sha1].remove((ip, port))
 
+    def dummy_response():
+        print("Dummy Response")
+
 
 tracker = Tracker("127.0.0.1", 6200)
 

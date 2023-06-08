@@ -1,5 +1,5 @@
 import bencode
-from torrent_info import TorrentInfo
+from torrent_files_utils.torrent_info import TorrentInfo
 
 class TorrentReader:
     
