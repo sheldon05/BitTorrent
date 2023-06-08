@@ -20,9 +20,14 @@ class BitTorrentClient:
         #TODO:Let tracker now that this file is upload, this part is with pyro Chuchi
         tc.create_dottorrent_file('torrent_files')
 
+    
+    
+    
     def dowload_file(self,dottorrent_file_path):
         '''
         Start dowload of a file from a local dottorrent file
         '''
         tr = torrent_reader(dottorrent_file_path)
         info = tr.build_torrent_info()
+
+    

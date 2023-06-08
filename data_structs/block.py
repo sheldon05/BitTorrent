@@ -1,6 +1,7 @@
 from enum import Enum
 
 DEFAULT_BLOCK_SIZE = 1 << 14 # 16KB
+
 class BlockState(Enum):
     BLOCK_FREE = 0
     BLOCK_PENDING = 1
