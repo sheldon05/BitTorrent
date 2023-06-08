@@ -8,12 +8,13 @@ class BitTorrentClient:
     def __init__(self, ip, port):
         self.ip = ip 
         self.port = port
+        self.peers = []
         os.mkdir(os.path.join(os.getcwd(), 'client_files', f'{ip}:{port}downloads'))
 
         #TODO:Put more trackers on .torrent 
 
            
-    def upload_file(self, path, tracker_url, private = false, comments = "unknow", source = "unknow" ):
+    def upload_file(self, path, tracker_url, private = False, comments = "unknow", source = "unknow" ):
         '''
         Upload a local file to the tracker
         '''
@@ -22,6 +23,20 @@ class BitTorrentClient:
 
         #TODO:Let tracker now that this file is upload, this part is with pyro Chuchi
         tc.create_dottorrent_file('torrent_files')
+
+    def get_peers_from_tracker(self, dottorrent_file_path):
+        tr = TorrentReader(dottorrent_file_path)
+        info = tr.build_torrent_info()
+        trackers = info.__get_trackers()
+        for tracker_ip, tracker_port in trackers:
+            tracker_proxy = self.connect_to_tracker(tracker_ip, tracker_port)
+            peers = tracker_proxy.get_peers(info.metainfo['info']['pieces'])
+            for ip, port in peers:
+                pass
+            # ahora tengo que conectarme al peers y preguntarle por las piezas que tiene
+            #para elegir la mas rara para descargarla
+           
+        
 
     def dowload_file(self,dottorrent_file_path):
         '''
