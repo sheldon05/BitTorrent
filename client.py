@@ -31,7 +31,6 @@ class BitTorrentClient:
 
         tc.create_dottorrent_file('torrent_files')
 
-
     def get_peers_from_tracker(self, torrent_info):
         info = torrent_info
         peers = []
