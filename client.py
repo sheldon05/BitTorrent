@@ -49,7 +49,7 @@ class BitTorrentClient:
     def find_rarest_piece(self, peers, torrent_info : TorrentInfo):
         count_of_pieces = [0 for i in range(torrent_info.number_of_pieces)]
         for ip, port in peers:
-            proxy = self.connect_to_peer(ip,port)
+            proxy = self.connect_to(ip, port, 'client')
             peer_bit_field = proxy.get_bit_field_of(torrent_info)
             for i in range(len(peer_bit_field)):
                 if peer_bit_field[i]:
@@ -72,11 +72,11 @@ class BitTorrentClient:
             
 
 
-    def connect_to(self, tracker_ip, tracker_port, type_of_peer):
+    def connect_to(self, ip, port, type_of_peer):
         ns = Pyro4.locateNS()
         # by default all peers, including tracker are registered in the name server as type_of_peerIP:Port
         uri = ns.lookup(f"{type_of_peer}{tracker_ip}:{tracker_port}")
-        tracker_proxy = Pyro4.Proxy(uri=uri)
+        proxy = Pyro4.Proxy(uri=uri)
 
         # try:
         #     tracker_proxy._pyroConnection.ping()
@@ -84,7 +84,7 @@ class BitTorrentClient:
         # except Pyro4.errors.CommunicationError:
         #     print("TRACKER Unreachable")
 
-        return tracker_proxy
+        return proxy
     
 
         
