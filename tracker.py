@@ -12,7 +12,8 @@ class Tracker(object):
 
 
     def get_peers(self, pieces_sha1):
-        peers = self.database[pieces_sha1]
+        decoded_info_hash = int.from_bytes(pieces_sha1, byteorder="big")
+        peers = self.database[decoded_info_hash]
 
         return peers
 
