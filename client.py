@@ -2,6 +2,7 @@ import Pyro4
 import os
 from torrent_files_utils.torrent_creator import TorrentCreator
 from torrent_files_utils.torrent_reader import TorrentReader
+from piece_manager import PieceManager
 
 actual_path = os.getcwd()
 
@@ -29,26 +30,29 @@ class BitTorrentClient:
 
         tc.create_dottorrent_file('torrent_files')
 
-    def get_peers_from_tracker(self, dottorrent_file_path):
-        tr = TorrentReader(dottorrent_file_path)
-        info = tr.build_torrent_info()
+    def get_peers_from_tracker(self, torrent_info):
+        info = torrent_info
+        peers = []
         trackers = info.__get_trackers()
+        peers = []
         for tracker_ip, tracker_port in trackers:
             tracker_proxy = self.connect_to_tracker(tracker_ip, tracker_port)
-            peers = tracker_proxy.get_peers(info.metainfo['info']['pieces'])
-            for ip, port in peers:
-                pass
+            for peer in tracker_proxy.get_peers(info.metainfo['info']['pieces']):
+                peers.append(peer)
+        return peers
             # ahora tengo que conectarme al peers y preguntarle por las piezas que tiene
             #para elegir la mas rara para descargarla
            
         
 
-    def dowload_file(self,dottorrent_file_path):
+    def dowload_file(self,dottorrent_file_path, save_at = '/client_files' ):
         '''
         Start dowload of a file from a local dottorrent file
         '''
         tr = TorrentReader(dottorrent_file_path)
         info = tr.build_torrent_info()
+        peers = self.get_peers_from_tracker(info)
+        piece_manager_inst = PieceManager(info, save_at)
 
 
     def connect_to_tracker(self, tracker_ip, tracker_port):
