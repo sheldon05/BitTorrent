@@ -20,7 +20,7 @@ class BitTorrentClient:
         '''
         Upload a local file to the tracker
         '''
-        tc = TorrentCreator(path, 1 << 18, private, [tracker_url], comments, source )
+        tc = TorrentCreator(path, 1 << 18, private, [tracker_urls], comments, source )
         sha1_hash = tc.get_hash_pieces()
 
         for tracker_ip, tracker_port in tracker_urls:
