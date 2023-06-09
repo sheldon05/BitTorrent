@@ -3,7 +3,7 @@ import os
 from torrent_files_utils.torrent_creator import TorrentCreator
 from torrent_files_utils.torrent_reader import TorrentReader
 from torrent_files_utils.torrent_info import TorrentInfo
-from piece_manager import PieceManager
+#from piece_manager import PieceManager
 
 actual_path = os.getcwd()
 
@@ -24,7 +24,13 @@ class BitTorrentClient:
         tc = TorrentCreator(path, 1 << 18, private, tracker_urls, comments, source )
         sha1_hash = tc.get_hash_pieces()
 
-        for tracker_ip, tracker_port in tracker_urls:
+        trackers = []
+
+        for url in tracker_urls:
+            ip, port = url.split(':')
+            trackers.append((ip, int(port)))
+
+        for tracker_ip, tracker_port in trackers:
             tracker_proxy = self.connect_to(tracker_ip, tracker_port, 'tracker')
             tracker_proxy.add_to_database(sha1_hash, self.ip, self.port)
             tracker_proxy._pyroRelease()
@@ -86,15 +92,3 @@ class BitTorrentClient:
 
         return proxy
     
-
-        
-        
-        
-    
-client = BitTorrentClient('127.0.0.1', 6201)
-
-proxy = client.connect_to('127.0.0.1', 6200, 'tracker')
-
-a = proxy.dummy_response()
-
-print(a)
