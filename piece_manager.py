@@ -7,20 +7,20 @@ import os
 
 class PieceManager:
 
-    def __init__(self, torrent_info):
+    def __init__(self, torrent_info, save_at):
         '''
             Initialize the piece manager
         '''
         self.torrent_info: TorrentInfo = torrent_info # The torrent info
         self.file_size = self.torrent_info.file_size # The file size
         self.piece_size = self.torrent_info.piece_size # The piece size
-        self.filename = f'{self.torrent_info.file_path}/{self.torrent_info.file_name}' # The file name
+        self.filename = f'{save_at}/{self.torrent_info.file_name}' # The file name
         self.number_of_pieces = self.torrent_info.number_of_pieces # The number of pieces of the file
         self.bitfield: bitstring.BitArray = bitstring.BitArray(self.number_of_pieces) # Bitfield of the pieces
         self.completed_pieces: int = 0 # Number of pieces that are completed
         self.dottorrent_pieces = self.torrent_info.dottorrent_pieces # SHA1 of the all pieces unioned
         self.pieces: list[Piece] = self.__build_pieces() # List of pieces
-        self.save_at = self.torrent_info.file_path # The path where the file will be downloaded
+        self.save_at = self.save_at # The path where the file will be downloaded
         self.__run()
 
     def __run(self):

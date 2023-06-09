@@ -2,6 +2,7 @@ import Pyro4
 import os
 from torrent_files_utils.torrent_creator import TorrentCreator
 from torrent_files_utils.torrent_reader import TorrentReader
+from piece_manager import PieceManager
 
 actual_path = os.getcwd()
 
@@ -26,9 +27,8 @@ class BitTorrentClient:
         #TODO:Let tracker now that this file is upload, this part is with pyro Chuchi
         tc.create_dottorrent_file('torrent_files')
 
-    def get_peers_from_tracker(self, dottorrent_file_path):
-        tr = TorrentReader(dottorrent_file_path)
-        info = tr.build_torrent_info()
+    def get_peers_from_tracker(self, torrent_info):
+        info = torrent_info
         trackers = info.__get_trackers()
         for tracker_ip, tracker_port in trackers:
             tracker_proxy = self.connect_to_tracker(tracker_ip, tracker_port)
@@ -40,12 +40,14 @@ class BitTorrentClient:
            
         
 
-    def dowload_file(self,dottorrent_file_path):
+    def dowload_file(self,dottorrent_file_path, save_at = '/client_files' ):
         '''
         Start dowload of a file from a local dottorrent file
         '''
         tr = TorrentReader(dottorrent_file_path)
         info = tr.build_torrent_info()
+        peers = get_peers_from_tracker(info)
+        piece_manager_inst = PieceManager(torrent_info, save_at)
 
 
     def connect_to_tracker(self, tracker_ip, tracker_port):
