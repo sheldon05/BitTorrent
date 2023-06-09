@@ -54,7 +54,7 @@ class BitTorrentClient:
             for i in range(len(peer_bit_field)):
                 if peer_bit_field[i]:
                     count_of_pieces[i] = count_of_pieces[i] + 1
-        return count_of_pieces.index(max(count_of_pieces, lambda : x)) 
+        return count_of_pieces.index(max(count_of_pieces, lambda x:x)) 
 
     def dowload_file(self,dottorrent_file_path, save_at = '/client_files' ):
         '''
