@@ -24,11 +24,12 @@ class BitTorrentClient:
         sha1_hash = tc.get_hash_pieces()
 
         for tracker_ip, tracker_port in tracker_urls:
-            tracker_proxy = self.connect_to_tracker(tracker_ip, tracker_port)
+            tracker_proxy = self.connect_to(tracker_ip, tracker_port, 'tracker')
             tracker_proxy.add_to_database(sha1_hash, self.ip, self.port)
             tracker_proxy._pyroRelease()
 
         tc.create_dottorrent_file('torrent_files')
+
 
     def get_peers_from_tracker(self, torrent_info):
         info = torrent_info
@@ -36,7 +37,7 @@ class BitTorrentClient:
         trackers = info.__get_trackers()
         peers = []
         for tracker_ip, tracker_port in trackers:
-            tracker_proxy = self.connect_to_tracker(tracker_ip, tracker_port)
+            tracker_proxy = self.connect_to(tracker_ip, tracker_port, 'tracker')
             for peer in tracker_proxy.get_peers(info.metainfo['info']['pieces']):
                 peers.append(peer)
         return peers
@@ -44,7 +45,6 @@ class BitTorrentClient:
             #para elegir la mas rara para descargarla
            
         
-
     def dowload_file(self,dottorrent_file_path, save_at = '/client_files' ):
         '''
         Start dowload of a file from a local dottorrent file
@@ -55,10 +55,10 @@ class BitTorrentClient:
         piece_manager_inst = PieceManager(info, save_at)
 
 
-    def connect_to_tracker(self, tracker_ip, tracker_port):
-        #by default all the trackers have the service name tracker
+    def connect_to(self, tracker_ip, tracker_port, type_of_peer):
         ns = Pyro4.locateNS()
-        uri = ns.lookup("tracker")
+        # by default all peers, including tracker are registered in the name server as type_of_peerIP:Port
+        uri = ns.lookup(f"{type_of_peer}{tracker_ip}:{tracker_port}")
         tracker_proxy = Pyro4.Proxy(uri=uri)
 
         # try:
@@ -69,9 +69,14 @@ class BitTorrentClient:
 
         return tracker_proxy
 
+    
+
+    
+
+
 client = BitTorrentClient('127.0.0.1', 6201)
 
-proxy = client.connect_to_tracker('127.0.0.1', 6200)
+proxy = client.connect_to('127.0.0.1', 6200, 'tracker')
 
 a = proxy.dummy_response()
 
