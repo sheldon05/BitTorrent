@@ -10,30 +10,29 @@ class Tracker(object):
         # values ip and port of the peers that potentially have the piece  , list of tuples (ip,port)
         self.database = {}
 
-
+    @Pyro4.expose
     def get_peers(self, pieces_sha1):
-        decoded_info_hash = int.from_bytes(pieces_sha1, byteorder="big")
-        peers = self.database[decoded_info_hash]
+        peers = self.database[pieces_sha1]
 
         return peers
 
     @Pyro4.expose
     def add_to_database(self, pieces_sha1, ip, port):
-        decoded_info_hash = int.from_bytes(pieces_sha1, byteorder="big")
-        if decoded_info_hash in self.database.keys():
+        print('entre')
+        print(type(pieces_sha1))
+        if pieces_sha1 in self.database.keys():
             print("llegue aqui")
-            if not self.database[decoded_info_hash].contains((ip, port)):
-                self.database[decoded_info_hash].append((ip, port))
+            if not self.database[pieces_sha1].contains((ip, port)):
+                self.database[pieces_sha1].append((ip, port))
 
         else:
-            self.database[decoded_info_hash] = [(ip, port)]
+            self.database[pieces_sha1] = [(ip, port)]
 
 
     def remove_from_database(self, pieces_sha1, ip, port):
-        decoded_info_hash = int.from_bytes(pieces_sha1, byteorder="big")
-        if decoded_info_hash in self.database.keys():
-            if self.database[decoded_info_hash].contains((ip, port)):
-                self.database[decoded_info_hash].remove((ip, port))
+        if pieces_sha1 in self.database.keys():
+            if self.database[pieces_sha1].contains((ip, port)):
+                self.database[pieces_sha1].remove((ip, port))
 
     @Pyro4.expose
     def dummy_response(self):

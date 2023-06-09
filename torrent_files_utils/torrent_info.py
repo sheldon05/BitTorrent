@@ -17,13 +17,13 @@ class TorrentInfo:
         self.piece_size = self.metainfo['info']['piece length']
         self.number_of_pieces = math.ceil(self.file_size/self.piece_size)
         self.dottorrent_pieces = self.metainfo['info']['pieces']
-        self.trackers = self.__get_trackers()
+        self.trackers = self.get_trackers()
         #  urlencoded 20-byte SHA1 hash of the value of the info key from the Metainfo file. Note that the value will be a bencoded dictionary, given the definition of the info key above.
         self.info_hash = hashlib.sha1(bencode.encode(self.metainfo['info'])).digest()
         
         
     
-    def __get_trackers(self):
+    def get_trackers(self):
         '''
             from 'IP: PORT' return  {
                 'IP': 'IP',

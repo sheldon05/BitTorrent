@@ -36,11 +36,11 @@ class TorrentCreator:
         '''
             String consisting of the concatenation of all 20-byte SHA1 hash values, one per piece
         '''
-        pieces_hash = b''
+        pieces_hash = ''
         with open(f'{self.path_file}', 'rb') as f:
             chunk = f.read(self.piece_size)
             while(chunk):
-                pieces_hash += hashlib.sha1(chunk).digest() 
+                pieces_hash += hashlib.sha1(chunk).hexdigest() 
                 chunk = f.read(self.piece_size)    
 
         print(pieces_hash)

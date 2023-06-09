@@ -40,7 +40,7 @@ class BitTorrentClient:
     def get_peers_from_tracker(self, torrent_info):
         info = torrent_info
         peers = []
-        trackers = info.__get_trackers()
+        trackers = info.get_trackers()
         peers = []
         for tracker_ip, tracker_port in trackers:
             tracker_proxy = self.connect_to(tracker_ip, tracker_port, 'tracker')
