@@ -1,9 +1,14 @@
 import Pyro4
 import os
+import math
+import random
+from bclient_logger import logger
 from torrent_files_utils.torrent_creator import TorrentCreator
 from torrent_files_utils.torrent_reader import TorrentReader
 from torrent_files_utils.torrent_info import TorrentInfo
 from piece_manager import PieceManager
+from data_structs.block import Block, BlockState, DEFAULT_BLOCK_SIZE
+
 
 actual_path = os.getcwd()
 
@@ -46,22 +51,30 @@ class BitTorrentClient:
             tracker_proxy = self.connect_to(tracker_ip, tracker_port, 'tracker')
             for peer in tracker_proxy.get_peers(info.metainfo['info']['pieces']):
                 peers.append(peer)
+            tracker_proxy._pyroRelease()
         return peers
             # ahora tengo que conectarme al peers y preguntarle por las piezas que tiene
             #para elegir la mas rara para descargarla
             
-        #TODO:Check this method
-    def find_rarest_piece(self, peers, torrent_info : TorrentInfo):
+        #TODO:Check this method, and potential connection failures
+    def find_rarest_piece(self, peers, torrent_info : TorrentInfo, owned_pieces):
         count_of_pieces = [0 for i in range(torrent_info.number_of_pieces)]
+        owners = [[] for i in range(torrent_info.number_of_pieces)]
         for ip, port in peers:
             proxy = self.connect_to(ip, port, 'client')
             peer_bit_field = proxy.get_bit_field_of(torrent_info)
             for i in range(len(peer_bit_field)):
                 if peer_bit_field[i]:
                     count_of_pieces[i] = count_of_pieces[i] + 1
-        return count_of_pieces.index(max(count_of_pieces, lambda x:x)) 
+                    owners[i].append((ip, port))
+            rarest_piece = count_of_pieces.index(min(count_of_pieces, lambda x:x))
+            while(owned_pieces[rares_piece]):
+                count_pieces[rarest_pieces] = math.inf
+                rarest_piece = count_of_pieces.index(min(count_of_pieces, lambda x:x))
+            proxy._pyroRelease()
+        return rarest_piece, owners[rarest_piece]
 
-    def dowload_file(self,dottorrent_file_path, save_at = '/client_files' ):
+    def dowload_file(self, dottorrent_file_path, save_at = '/client_files' ):
         '''
         Start dowload of a file from a local dottorrent file
         '''
@@ -69,13 +82,48 @@ class BitTorrentClient:
         info = tr.build_torrent_info()
         peers = self.get_peers_from_tracker(info)
         piece_manager_inst = PieceManager(info, save_at)
-        rarest_piece = self.find_rarest_piece(peers, info)
+        while not piece_manager_inst.completed:
+            rarest_piece, owners = self.find_rarest_piece(peers, info, piece_manager_inst.bitfield)
+            while len(owners)>0:
+                peer_for_download = owners[random.randint(len(owners))]
+                owners.remove(peer_for_download)
+                try:
+                    piece_manager_inst.clean_memory(rarest_piece)
+                    self.dowload_piece_from_peer(peer_for_download, info, rarest_piece, piece_manager_inst)
+                    break
+                except:
+                    logger.error('Download error')
+            if not len(owners):
+                break
+            
+   
+    def dowload_piece_from_peer(self, peer, torrent_info : TorrentInfo, piece_index, piece_manager : PieceManager):
+        try:
+            proxy_peer = self.connect_to(peer[0], peer[1], 'client')
+        except:
+            logger.error("Connection failure")
+            return
+        for i in range(int(math.ceil(float(torrent_info.piece_size) / DEFAULT_BLOCK_SIZE))):
+            raw_data = proxy_peer.get_block_of_piece(piece_index, i*DEFAULT_BLOCK_SIZE)
+            piece_manager.receive_block_piece(piece_index, i*DEFAULT_BLOCK_SIZE, raw_data)
+        
+        proxy_peer._pyroRelease()
+        
+            
+
 
     def get_bit_field_of(self, torrent_info : TorrentInfo):
         piece_manager = PieceManager(torrent_info, '/client_files')
         return piece_manager.bitfield
             
 
+    # def get_piece_of_file(self, torrent_info : TorrentInfo, piece_index):
+    #     piece_manager = PieceManager(torrent_info, '/client_files')
+    #     return piece_manager.get_piece(piece_index)
+    
+    def get_block_of_piece(self, torrent_info: TorrentInfo, piece_index, block_offset):
+        piece_manager = PieceManager(torrent_info, '/client_files')
+        return piece_manager.get_block_piece(piece_index, block_offset)
 
     def connect_to(self, ip, port, type_of_peer):
         ns = Pyro4.locateNS()
