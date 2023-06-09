@@ -20,7 +20,7 @@ class PieceManager:
         self.completed_pieces: int = 0 # Number of pieces that are completed
         self.dottorrent_pieces = self.torrent_info.dottorrent_pieces # SHA1 of the all pieces unioned
         self.pieces: list[Piece] = self.__build_pieces() # List of pieces
-        self.save_at = self.save_at # The path where the file will be downloaded
+        self.save_at = save_at # The path where the file will be downloaded
         self.__run()
 
     def __run(self):
@@ -79,7 +79,9 @@ class PieceManager:
 
     def __check_local_pieces(self):
         path = f'{self.save_at}/{self.torrent_info.file_name}'
+        print(path)
         if os.path.exists(path):
+            print("el path existia")
             for piece_index in range(self.number_of_pieces):
                 with open(path, 'rb') as f:
                     chunk = f.read(self.piece_size)

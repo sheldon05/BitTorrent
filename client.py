@@ -74,7 +74,8 @@ class BitTorrentClient:
             proxy._pyroRelease()
         return rarest_piece, owners[rarest_piece]
 
-    def dowload_file(self, dottorrent_file_path, save_at = '/client_files' ):
+
+    def dowload_file(self, dottorrent_file_path, save_at = 'client_files' ):
         '''
         Start dowload of a file from a local dottorrent file
         '''
@@ -111,7 +112,7 @@ class BitTorrentClient:
         
             
 
-
+    @Pyro4.expose
     def get_bit_field_of(self, torrent_info : TorrentInfo):
         piece_manager = PieceManager(torrent_info, '/client_files')
         return piece_manager.bitfield
@@ -121,6 +122,7 @@ class BitTorrentClient:
     #     piece_manager = PieceManager(torrent_info, '/client_files')
     #     return piece_manager.get_piece(piece_index)
     
+    @Pyro4.expose
     def get_block_of_piece(self, torrent_info: TorrentInfo, piece_index, block_offset):
         piece_manager = PieceManager(torrent_info, '/client_files')
         return piece_manager.get_block_piece(piece_index, block_offset)

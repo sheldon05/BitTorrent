@@ -11,6 +11,4 @@ tr = TorrentReader(torrent_file_path)
 
 torrent_info = tr.build_torrent_info()
 
-peers = client_leecher.get_peers_from_tracker(torrent_info)
-
-print(peers)
+client_leecher.dowload_file(torrent_file_path, save_at='test')
