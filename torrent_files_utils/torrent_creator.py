@@ -41,7 +41,10 @@ class TorrentCreator:
             chunk = f.read(self.piece_size)
             while(chunk):
                 pieces_hash += hashlib.sha1(chunk).digest() 
-                chunk = f.read(self.piece_size)       
+                chunk = f.read(self.piece_size)    
+
+        print(pieces_hash)
+        print(type(pieces_hash))   
         return pieces_hash
     
 

@@ -3,7 +3,7 @@ import hashlib
 from bclient_logger import logger
 import math
 import os
-from block import Block, BlockState, DEFAULT_BLOCK_SIZE
+from data_structs.block import Block, BlockState, DEFAULT_BLOCK_SIZE
 from disk_io import DiskIO
 
 class Piece:

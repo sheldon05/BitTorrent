@@ -19,6 +19,7 @@ class Tracker(object):
     @Pyro4.expose
     def add_to_database(self, pieces_sha1, ip, port):
         if pieces_sha1 in self.database.keys():
+            print("llegue aqui")
             if not self.database[pieces_sha1].contains((ip, port)):
                 self.database[pieces_sha1].append((ip, port))
 
