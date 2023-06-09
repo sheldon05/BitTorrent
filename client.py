@@ -3,7 +3,7 @@ import os
 from torrent_files_utils.torrent_creator import TorrentCreator
 from torrent_files_utils.torrent_reader import TorrentReader
 from torrent_files_utils.torrent_info import TorrentInfo
-#from piece_manager import PieceManager
+from piece_manager import PieceManager
 
 actual_path = os.getcwd()
 

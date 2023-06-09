@@ -7,7 +7,7 @@ class TorrentCreator:
     '''
         Create .torrent file from an input file
     '''
-    def __init__(self, path_file: str, piece_size: int, private: bool, trackers_urls: list[str], comments: str, source: str):
+    def __init__(self, path_file: str, piece_size: int, private: bool, trackers_urls, comments: str, source: str):
         self.path_file = path_file
         self.piece_size = piece_size
         self.trackers_urls = trackers_urls
