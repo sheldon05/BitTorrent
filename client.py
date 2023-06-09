@@ -29,14 +29,12 @@ class BitTorrentClient:
 
     def get_peers_from_tracker(self, torrent_info):
         info = torrent_info
+        peers = []
         trackers = info.__get_trackers()
         for tracker_ip, tracker_port in trackers:
             tracker_proxy = self.connect_to_tracker(tracker_ip, tracker_port)
-            peers = tracker_proxy.get_peers(info.metainfo['info']['pieces'])
-            for ip, port in peers:
-                pass
-            # ahora tengo que conectarme al peers y preguntarle por las piezas que tiene
-            #para elegir la mas rara para descargarla
+            peers.append(tracker_proxy.get_peers(info.metainfo['info']['pieces']))
+        return peers
            
         
 
