@@ -1,6 +1,6 @@
 import Pyro4
 
-class Tracker:
+class Tracker(object):
 
     def __init__(self, ip, port):
         self.ip = ip
@@ -16,7 +16,7 @@ class Tracker:
 
         return peers
 
-    
+    @Pyro4.expose
     def add_to_database(self, pieces_sha1, ip, port):
         if pieces_sha1 in self.database.keys():
             if not self.database[pieces_sha1].contains((ip, port)):
@@ -31,8 +31,9 @@ class Tracker:
             if self.database[pieces_sha1].contains((ip, port)):
                 self.database[pieces_sha1].remove((ip, port))
 
-    def dummy_response():
-        print("Dummy Response")
+    @Pyro4.expose
+    def dummy_response(self):
+        return "DUMMY RESPONSE"
 
 
 tracker = Tracker("127.0.0.1", 6200)

@@ -11,19 +11,22 @@ class BitTorrentClient:
         self.ip = ip 
         self.port = port
         self.peers = []
-        os.mkdir(os.path.join(os.getcwd(), 'client_files', f'{ip}:{port}downloads'))
 
         #TODO:Put more trackers on .torrent 
 
            
-    def upload_file(self, path, tracker_url, private = False, comments = "unknow", source = "unknow" ):
+    def upload_file(self, path, tracker_urls, private = False, comments = "unknow", source = "unknow" ):
         '''
         Upload a local file to the tracker
         '''
         tc = TorrentCreator(path, 1 << 18, private, [tracker_url], comments, source )
         sha1_hash = tc.get_hash_pieces()
 
-        #TODO:Let tracker now that this file is upload, this part is with pyro Chuchi
+        for tracker_ip, tracker_port in tracker_urls:
+            tracker_proxy = self.connect_to_tracker(tracker_ip, tracker_port)
+            tracker_proxy.add_to_database(sha1_hash, self.ip, self.port)
+            tracker_proxy._pyroRelease()
+
         tc.create_dottorrent_file('torrent_files')
 
     def get_peers_from_tracker(self, dottorrent_file_path):
@@ -50,15 +53,15 @@ class BitTorrentClient:
 
     def connect_to_tracker(self, tracker_ip, tracker_port):
         #by default all the trackers have the service name tracker
-        uri = f"PYRO:obj_4e01749f627a40a9b7049d91079fc309@{tracker_ip}:{tracker_port}"
-        tracker_proxy = Pyro4.Proxy(uri)
-        tracker_proxy.dummy_response()
+        ns = Pyro4.locateNS()
+        uri = ns.lookup("tracker")
+        tracker_proxy = Pyro4.Proxy(uri=uri)
 
-        try:
-            tracker_proxy._pyroConnection.ping()
-            print("El servidor Pyro está activo.")
-        except Pyro4.errors.CommunicationError:
-            print("Error: El servidor Pyro no está activo.")
+        # try:
+        #     tracker_proxy._pyroConnection.ping()
+        #     print(f"Succefuly connection with the TRACKER at {tracker_ip}:{tracker_port}")
+        # except Pyro4.errors.CommunicationError:
+        #     print("TRACKER Unreachable")
 
         return tracker_proxy
 
@@ -66,4 +69,6 @@ client = BitTorrentClient('127.0.0.1', 6201)
 
 proxy = client.connect_to_tracker('127.0.0.1', 6200)
 
-print(proxy.dummy_response())
+a = proxy.dummy_response()
+
+print(a)
