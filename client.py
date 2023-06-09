@@ -46,8 +46,8 @@ class BitTorrentClient:
         '''
         tr = TorrentReader(dottorrent_file_path)
         info = tr.build_torrent_info()
-        peers = get_peers_from_tracker(info)
-        piece_manager_inst = PieceManager(torrent_info, save_at)
+        peers = self.get_peers_from_tracker(info)
+        piece_manager_inst = PieceManager(info, save_at)
 
 
     def connect_to_tracker(self, tracker_ip, tracker_port):
