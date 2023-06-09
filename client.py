@@ -2,6 +2,7 @@ import Pyro4
 import os
 from torrent_files_utils.torrent_creator import TorrentCreator
 from torrent_files_utils.torrent_reader import TorrentReader
+from torrent_files_utils.torrent_info import TorrentInfo
 from piece_manager import PieceManager
 
 actual_path = os.getcwd()
@@ -43,8 +44,18 @@ class BitTorrentClient:
         return peers
             # ahora tengo que conectarme al peers y preguntarle por las piezas que tiene
             #para elegir la mas rara para descargarla
-           
-        
+            
+        #TODO:Check this method
+    def find_rarest_piece(peers, torrent_info : TorrentInfo):
+        count_of_pieces = [0 for i in range(torrent_info.number_of_pieces)]
+        for ip, port in peers:
+            proxy = this.connect_to_peer(ip,port)
+            peer_bit_field = proxy.get_bit_field_of(torrent_info)
+            for i in range(len(peer_bit_field)):
+                if peer_bit_field[i]:
+                    count_of_pieces[i] = count_of_pieces[i] + 1
+        return count_of_pieces.index(max(count_of_pieces, lambda : x)) 
+
     def dowload_file(self,dottorrent_file_path, save_at = '/client_files' ):
         '''
         Start dowload of a file from a local dottorrent file
@@ -53,6 +64,12 @@ class BitTorrentClient:
         info = tr.build_torrent_info()
         peers = self.get_peers_from_tracker(info)
         piece_manager_inst = PieceManager(info, save_at)
+        rarest_piece = find_rarest_piece(peers, info)
+
+        def get_bit_field_of(torrent_info : TorrentInfo):
+            piece_manager = PieceManager(torrent_info, '/client_files')
+            return piece_manager.bitfield
+            
 
 
     def connect_to(self, tracker_ip, tracker_port, type_of_peer):
@@ -68,12 +85,12 @@ class BitTorrentClient:
         #     print("TRACKER Unreachable")
 
         return tracker_proxy
-
     
 
+        
+        
+        
     
-
-
 client = BitTorrentClient('127.0.0.1', 6201)
 
 proxy = client.connect_to('127.0.0.1', 6200, 'tracker')
