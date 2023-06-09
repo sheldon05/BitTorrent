@@ -75,7 +75,7 @@ class BitTorrentClient:
     def connect_to(self, ip, port, type_of_peer):
         ns = Pyro4.locateNS()
         # by default all peers, including tracker are registered in the name server as type_of_peerIP:Port
-        uri = ns.lookup(f"{type_of_peer}{tracker_ip}:{tracker_port}")
+        uri = ns.lookup(f"{type_of_peer}{ip}:{port}")
         proxy = Pyro4.Proxy(uri=uri)
 
         # try:
