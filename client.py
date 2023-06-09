@@ -71,9 +71,9 @@ class BitTorrentClient:
         piece_manager_inst = PieceManager(info, save_at)
         rarest_piece = self.find_rarest_piece(peers, info)
 
-        def get_bit_field_of(self, torrent_info : TorrentInfo):
-            piece_manager = PieceManager(torrent_info, '/client_files')
-            return piece_manager.bitfield
+    def get_bit_field_of(self, torrent_info : TorrentInfo):
+        piece_manager = PieceManager(torrent_info, '/client_files')
+        return piece_manager.bitfield
             
 
 
