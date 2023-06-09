@@ -46,10 +46,10 @@ class BitTorrentClient:
             #para elegir la mas rara para descargarla
             
         #TODO:Check this method
-    def find_rarest_piece(peers, torrent_info : TorrentInfo):
+    def find_rarest_piece(self, peers, torrent_info : TorrentInfo):
         count_of_pieces = [0 for i in range(torrent_info.number_of_pieces)]
         for ip, port in peers:
-            proxy = this.connect_to_peer(ip,port)
+            proxy = self.connect_to_peer(ip,port)
             peer_bit_field = proxy.get_bit_field_of(torrent_info)
             for i in range(len(peer_bit_field)):
                 if peer_bit_field[i]:
@@ -64,9 +64,9 @@ class BitTorrentClient:
         info = tr.build_torrent_info()
         peers = self.get_peers_from_tracker(info)
         piece_manager_inst = PieceManager(info, save_at)
-        rarest_piece = find_rarest_piece(peers, info)
+        rarest_piece = self.find_rarest_piece(peers, info)
 
-        def get_bit_field_of(torrent_info : TorrentInfo):
+        def get_bit_field_of(self, torrent_info : TorrentInfo):
             piece_manager = PieceManager(torrent_info, '/client_files')
             return piece_manager.bitfield
             
