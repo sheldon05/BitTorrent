@@ -127,6 +127,18 @@ class BitTorrentClient:
         piece_manager = PieceManager(torrent_info, '/client_files')
         return piece_manager.get_block_piece(piece_index, block_offset)
 
+    ###Testing scope
+
+    @Pyro4.expose
+    def pyro_tester(self, a, b):
+        return a,b
+    
+    def pyro_tester_caller(self, a, b):
+        proxy_peer = self.connect_to('127.0.0.1', 6201, 'client')
+        s = proxy_peer.pyro_tester(a,b)
+        return s
+    ###Testing scope
+
     def connect_to(self, ip, port, type_of_peer):
         ns = Pyro4.locateNS()
         # by default all peers, including tracker are registered in the name server as type_of_peerIP:Port

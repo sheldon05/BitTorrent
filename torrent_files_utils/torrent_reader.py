@@ -12,7 +12,7 @@ class TorrentReader:
         contents = dottorrent_f.read()
         metainfo = bencode.decode(contents) 
         dottorrent_f.close()
-        return metainfo
+        return dict(metainfo)
     
     def build_torrent_info(self):
         return TorrentInfo(self.metainfo)

@@ -1,6 +1,8 @@
 from client import BitTorrentClient
 from torrent_files_utils.torrent_reader import TorrentReader
 import os
+from torrent_files_utils.torrent_reader import TorrentReader
+from testing import Prueba
 
 actual_folder = os.getcwd()
 torrent_file_path = os.path.join(actual_folder, 'torrent_files', 'archivo.torrent')
@@ -11,4 +13,9 @@ tr = TorrentReader(torrent_file_path)
 
 torrent_info = tr.build_torrent_info()
 
-client_leecher.dowload_file(torrent_file_path, save_at='test')
+#client_leecher.dowload_file(torrent_file_path, save_at='test')
+
+prueba = Prueba({'a':1, 'b':2}, 'carro')
+
+a = client_leecher.pyro_tester_caller(1,prueba)
+print(a)
