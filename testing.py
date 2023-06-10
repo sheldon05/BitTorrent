@@ -12,3 +12,5 @@ class Prueba:
         self.b = state['b']
     def __str__(self):
         return 'soy la clase prueba'
+
+    
