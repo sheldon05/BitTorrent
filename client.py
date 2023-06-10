@@ -22,26 +22,35 @@ class BitTorrentClient:
 
         #TODO:Put more trackers on .torrent 
 
-           
+
+    def update_trackers(trackers, sha1, remove = False):
+        if remove:
+            for tracker_ip, tracker_port in trackers:
+                tracker_proxy = self.connect_to(tracker_ip, tracker_port, 'tracker')
+                tracker_proxy.remove_from_database(sha1, self.ip, self.port)
+                tracker_proxy._pyroRelease()
+        else:
+            for tracker_ip, tracker_port in trackers:
+                tracker_proxy = self.connect_to(tracker_ip, tracker_port, 'tracker')
+                tracker_proxy.add_to_database(sha1, self.ip, self.port)
+                tracker_proxy._pyroRelease()
+            
     def upload_file(self, path, tracker_urls, private = False, comments = "unknow", source = "unknow" ):
         '''
         Upload a local file to the tracker
         '''
         tc = TorrentCreator(path, 1 << 18, private, tracker_urls, comments, source )
         sha1_hash = tc.get_hash_pieces()
+        tc.create_dottorrent_file('torrent_files')
 
         trackers = []
 
         for url in tracker_urls:
             ip, port = url.split(':')
             trackers.append((ip, int(port)))
+            
+        self.update_trackers(trackers, ip, port, sha1_hash)
 
-        for tracker_ip, tracker_port in trackers:
-            tracker_proxy = self.connect_to(tracker_ip, tracker_port, 'tracker')
-            tracker_proxy.add_to_database(sha1_hash, self.ip, self.port)
-            tracker_proxy._pyroRelease()
-
-        tc.create_dottorrent_file('torrent_files')
 
     def get_peers_from_tracker(self, torrent_info):
         info = torrent_info
@@ -85,6 +94,9 @@ class BitTorrentClient:
         info = tr.build_torrent_info()
         peers = self.get_peers_from_tracker(info)
         piece_manager_inst = PieceManager(info, save_at)
+        
+        self.update_trackers(info.get_trackers(), info.dottorrent_pieces)
+        
         while not piece_manager_inst.completed:
             rarest_piece, owners = self.find_rarest_piece(peers, info, piece_manager_inst.bitfield)
             while len(owners)>0:
