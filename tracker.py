@@ -15,7 +15,7 @@ class Tracker(object):
         self.predecessor: str = ""
         self.next_to_fix: int = 0
         #aqui tengo duda de xq guardar informacion de 160 claves
-        self.finger_table: list[(int,str)] = []
+        self.finger_table: list[[int,str]] = [0,""]*161
 
         # keys are the concatenation of sha1 hash of the pieces of the files, pieces key in .torrent
         # values ip and port of the peers that potentially have the piece  , list of tuples (ip,port)
@@ -31,6 +31,7 @@ class Tracker(object):
     
     def join(self, ip, port) -> None:
         tracker_proxy = self.connect_to(ip, port, 'tracker')
+        print(str(self.node_id) + 'algo!!!!!!!!!!!!!!')
         self.successor = tracker_proxy.find_successor(self.node_id)[1]    
         
 
@@ -60,6 +61,9 @@ class Tracker(object):
         print("find succesor")
         successor = self.successor
         node_id = self.node_id
+        if node_id == sha256_hash(successor):
+            return (node_id, self.ip+":"+str(self.port))
+        print(node_id)
         print(key)
         print(sha256_hash(successor))
         if key in range(node_id+1, sha256_hash(successor)+1):
