@@ -3,15 +3,15 @@ import hashlib
 from threading import Timer
 
 def sha256_hash(s):
-    return int(hashlib.sha256(s).hexdigest(), 16)
+    return int(hashlib.sha256(s.encode()).hexdigest(), 16)
 
 class Tracker(object):
 
     def __init__(self, ip, port):
         self.ip = ip
         self.port = port
-        self.node_id = sha256_hash(self.ip + ':' + self.port)
-        self.successor:str = self.ip + ':' + self.port
+        self.node_id = sha256_hash(self.ip + ':' + str(self.port))
+        self.successor:str = self.ip + ':' + str(self.port)
         self.predecessor: str = ""
         self.next_to_fix: int = 0
         #aqui tengo duda de xq guardar informacion de 160 claves
@@ -53,19 +53,21 @@ class Tracker(object):
         for i in range(len(self.finger_table)-1, -1, -1):
             if self.finger_table[i][0] in range(self.node_id+1, id):
                 return self.finger_table[i]
-        return (self.node_id,self.ip+':'+self.port)
+        return (self.node_id,self.ip+':'+str(self.port))
 
+    @Pyro4.expose
     def find_successor(self, key):
         print("find succesor")
         successor = self.successor
         node_id = self.node_id
+        print(key)
+        print(sha256_hash(successor))
         if key in range(node_id+1, sha256_hash(successor)+1):
             print("sucessor:" + successor)
             return (sha256_hash(successor), successor)
         else:
             node_id = self.closest_preceding_finger(key)[1]
             tracker_proxy = self.connect_to(node_id.split(":")[0], int(node_id.split(":")[1]), 'tracker')
-            print("successor"+tracker_proxy.find_succesor(key)[1])
             return tracker_proxy.find_succesor(key)
     
     def stabilize(self):
@@ -77,9 +79,9 @@ class Tracker(object):
             self.successor = successor_predecessor
         
         tracker_proxy = self.connect_to(self.successor.split(":")[0], int(self.successor.split(":")[1]), 'tracker')
-        tracker_proxy.notify(self.ip+":"+self.port)
+        tracker_proxy.notify(self.ip+":"+str(self.port))
 
-
+    @Pyro4.expose
     def notify(self, node):
         print("notify")
         if not self.predecessor or sha256_hash(node) in range (sha256_hash(self.predecessor), self.node_id):
@@ -88,7 +90,7 @@ class Tracker(object):
     def fix_finger(self):
         print("fix_finger")
         self.next_to_fix += 1
-        if self.next_to_fix > 160:
+        if self.next_to_fix > 3:
             self.next_to_fix = 1
 
         self.finger_table[self.next_to_fix] = self.find_successor(self.node_id+2**(self.next_to_fix-1))
@@ -100,10 +102,12 @@ class Tracker(object):
             print("predeccesor checked")
         except:
             self.predecessor = ""
- 
+    
+    @Pyro4.expose
     def get_successor(self):
         return self.successor
 
+    @Pyro4.expose
     def get_predecessor(self):
         return self.predecessor
    
@@ -155,11 +159,11 @@ class Tracker(object):
         return proxy
 
 
-tracker = Tracker("127.0.0.1", 6200)
+# tracker = Tracker("127.0.0.1", 6200)
 
-daemon = Pyro4.Daemon(host=tracker.ip, port= tracker.port)
-ns = Pyro4.locateNS()
-uri = daemon.register(tracker)
-ns.register(f"tracker{tracker.ip}:{tracker.port}", uri)
-print(f"TRACKER {tracker.ip}:{tracker.port} STARTED")
-daemon.requestLoop()
+# daemon = Pyro4.Daemon(host=tracker.ip, port= tracker.port)
+# ns = Pyro4.locateNS()
+# uri = daemon.register(tracker)
+# ns.register(f"tracker{tracker.ip}:{tracker.port}", uri)
+# print(f"TRACKER {tracker.ip}:{tracker.port} STARTED")
+# daemon.requestLoop()
