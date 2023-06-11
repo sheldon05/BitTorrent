@@ -4,21 +4,23 @@ from torrent_files_utils.torrent_info import TorrentInfo
 import bitstring
 from disk_io import DiskIO
 import os
+import math
 
 class PieceManager:
 
-    def __init__(self, torrent_info, save_at):
+    def __init__(self, info, save_at):
         '''
             Initialize the piece manager
         '''
-        self.torrent_info: TorrentInfo = torrent_info # The torrent info
-        self.file_size = self.torrent_info.file_size # The file size
-        self.piece_size = self.torrent_info.piece_size # The piece size
-        self.filename = f'{save_at}/{self.torrent_info.file_name}' # The file name
-        self.number_of_pieces = self.torrent_info.number_of_pieces # The number of pieces of the file
-        self.bitfield: bitstring.BitArray = bitstring.BitArray(self.number_of_pieces) # Bitfield of the pieces
+        info = dict(info)
+        print(info)
+        self.file_size = info['length'] # The file size
+        self.piece_size = info['piece length'] # The piece size
+        self.filename = f"{save_at}/{info['name']}" # The file name
+        self.number_of_pieces = math.ceil(self.file_size/self.piece_size) # The number of pieces of the file
+        self.bitfield = [False for i in range(self.number_of_pieces)] # Bitfield of the pieces
         self.completed_pieces: int = 0 # Number of pieces that are completed
-        self.dottorrent_pieces = self.torrent_info.dottorrent_pieces # SHA1 of the all pieces unioned
+        self.dottorrent_pieces = info['pieces'] # SHA1 of the all pieces unioned
         self.pieces: list[Piece] = self.__build_pieces() # List of pieces
         self.save_at = save_at # The path where the file will be downloaded
         self.__run()
@@ -69,8 +71,8 @@ class PieceManager:
         pieces = []
         for i in range(self.number_of_pieces):
             piece_offset = self.piece_size*i
-            starthash_index = i * 20
-            piece_hash = self.dottorrent_pieces[starthash_index: starthash_index+20]
+            starthash_index = i * 40
+            piece_hash = self.dottorrent_pieces[starthash_index: starthash_index+40]
             piece_size = self.file_size % self.piece_size if i == self.number_of_pieces - 1 else self.piece_size
             piece = Piece(i, piece_offset, piece_size, piece_hash)
             pieces.append(piece)
@@ -78,16 +80,20 @@ class PieceManager:
         
 
     def __check_local_pieces(self):
-        path = f'{self.save_at}/{self.torrent_info.file_name}'
+        path = self.filename
+        print('debug on check_local_pieces')
         print(path)
         if os.path.exists(path):
             print("el path existia")
             for piece_index in range(self.number_of_pieces):
                 with open(path, 'rb') as f:
                     chunk = f.read(self.piece_size)
+                    print('este es el chunk ',chunk)
                     while(chunk):
-                        sha1chunk = hashlib.sha1(chunk).digest()
+                        sha1chunk = hashlib.sha1(chunk).hexdigest()
+                        print('este es el sha1', sha1chunk)
                         piece: 'Piece' = self.pieces[piece_index]
+                        print('este es el sha1 de la pieza segun la metainfo', piece.piece_hash)
                         if sha1chunk == piece.piece_hash:  # This piece is already written in the file
                             self.bitfield[piece_index] = True
                             piece.is_completed = True

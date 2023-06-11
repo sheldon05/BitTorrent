@@ -14,6 +14,4 @@ tr = TorrentReader(torrent_file_path)
 
 torrent_info = tr.build_torrent_info()
 
-print(torrent_info.metainfo)
-
 client_leecher.dowload_file(torrent_file_path, save_at='test')
