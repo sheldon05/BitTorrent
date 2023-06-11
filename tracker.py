@@ -90,6 +90,8 @@ class Tracker(object):
         print("notify")
         if not self.predecessor or sha256_hash(node) in range (sha256_hash(self.predecessor), self.node_id):
             self.predecessor = node
+        print(self.successor)
+        print(self.predecessor)
 
     def fix_finger(self):
         print("fix_finger")
