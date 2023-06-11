@@ -14,12 +14,18 @@ class Tracker(object):
         self.successor:str = self.ip + ':' + self.port
         self.predecessor: str = ""
         self.next_to_fix: int = 0
-        #aqui tengo duda de xq guardar informacion de 161 claves
+        #aqui tengo duda de xq guardar informacion de 160 claves
         self.finger_table: list[(int,str)] = []
 
         # keys are the concatenation of sha1 hash of the pieces of the files, pieces key in .torrent
         # values ip and port of the peers that potentially have the piece  , list of tuples (ip,port)
         self.database = {}
+
+    def run_chord(self):
+        self.stabilize()
+        self.fix_finger()
+        self.check_predecessor()
+        Timer(1, self.run_chord, []).start()
 
         
     
@@ -50,16 +56,20 @@ class Tracker(object):
         return (self.node_id,self.ip+':'+self.port)
 
     def find_successor(self, key):
+        print("find succesor")
         successor = self.successor
         node_id = self.node_id
         if key in range(node_id+1, sha256_hash(successor)+1):
+            print("sucessor:" + successor)
             return (sha256_hash(successor), successor)
         else:
             node_id = self.closest_preceding_finger(key)[1]
             tracker_proxy = self.connect_to(node_id.split(":")[0], int(node_id.split(":")[1]), 'tracker')
+            print("successor"+tracker_proxy.find_succesor(key)[1])
             return tracker_proxy.find_succesor(key)
     
     def stabilize(self):
+        print("stabilize")
         tracker_proxy = self.connect_to(self.successor.split(":")[0], int(self.successor.split(":")[1]), 'tracker')
         successor_predecessor = tracker_proxy.get_predecessor()
 
@@ -71,10 +81,12 @@ class Tracker(object):
 
 
     def notify(self, node):
+        print("notify")
         if not self.predecessor or sha256_hash(node) in range (sha256_hash(self.predecessor), self.node_id):
             self.predecessor = node
 
     def fix_finger(self):
+        print("fix_finger")
         self.next_to_fix += 1
         if self.next_to_fix > 160:
             self.next_to_fix = 1
@@ -82,8 +94,10 @@ class Tracker(object):
         self.finger_table[self.next_to_fix] = self.find_successor(self.node_id+2**(self.next_to_fix-1))
 
     def check_predecessor(self):
+        print("check predecessor")
         try:
             tracker_proxy = self.connect_to(self.predecessor.split(":")[0], int(self.predecessor.split(":")[1]), 'tracker')
+            print("predeccesor checked")
         except:
             self.predecessor = ""
  
