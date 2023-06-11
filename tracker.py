@@ -26,6 +26,8 @@ class Tracker(object):
         self.stabilize()
         self.fix_finger()
         self.check_predecessor()
+        print('esta es la finger_table')
+        print(self.finger_table)
         Timer(1, self.run_chord, []).start()
 
         
@@ -35,7 +37,7 @@ class Tracker(object):
         print(str(self.node_id) + 'algo!!!!!!!!!!!!!!')
         self.successor = tracker_proxy.find_successor(self.node_id)[1]    
         
-    
+
 
     # def find_predecessor(self, key):
     #     node_id = self.node_id
