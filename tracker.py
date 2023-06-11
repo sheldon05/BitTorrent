@@ -16,6 +16,7 @@ class Tracker(object):
         self.next_to_fix: int = 0
         #aqui tengo duda de xq guardar informacion de 160 claves
         self.finger_table: list[[int,str]] = [0,""]*4
+        
 
         # keys are the concatenation of sha1 hash of the pieces of the files, pieces key in .torrent
         # values ip and port of the peers that potentially have the piece  , list of tuples (ip,port)
@@ -34,12 +35,7 @@ class Tracker(object):
         print(str(self.node_id) + 'algo!!!!!!!!!!!!!!')
         self.successor = tracker_proxy.find_successor(self.node_id)[1]    
         
-
-        self.finger_table.append((sha256_hash(self.successor),self.successor))
-        for i in range(1, 161):
-            finger_id = self.node_id + 2**(i-1)
-            finger_node = self.find_successor(finger_id)
-            self.finger_table.append(finger_node)
+    
 
     # def find_predecessor(self, key):
     #     node_id = self.node_id
@@ -52,6 +48,7 @@ class Tracker(object):
 
     def closest_preceding_finger(self, id):
         for i in range(len(self.finger_table)-1, -1, -1):
+            print(self.finger_table[i])
             if self.finger_table[i][0] in range(self.node_id+1, id):
                 return self.finger_table[i]
         return (self.node_id,self.ip+':'+str(self.port))
@@ -69,6 +66,8 @@ class Tracker(object):
         if key in range(node_id+1, sha256_hash(successor)+1):
             print("sucessor:" + successor)
             return (sha256_hash(successor), successor)
+        elif sha256_hash(self.predecessor) > self.node_id:
+            return (node_id, self.ip+":"+str(self.port)) 
         else:
             node_id = self.closest_preceding_finger(key)[1]
             tracker_proxy = self.connect_to(node_id.split(":")[0], int(node_id.split(":")[1]), 'tracker')
@@ -76,22 +75,28 @@ class Tracker(object):
     
     def stabilize(self):
         print("stabilize")
+        print(self.successor)
+        print(self.predecessor)
         tracker_proxy = self.connect_to(self.successor.split(":")[0], int(self.successor.split(":")[1]), 'tracker')
         successor_predecessor = tracker_proxy.get_predecessor()
 
-        if sha256_hash(successor_predecessor) in range(self.node_id+1, sha256_hash(self.successor)):
+        if sha256_hash(successor_predecessor) in range(self.node_id+1, sha256_hash(self.successor)) or (self.predecessor != "" and sha256_hash(self.successor)==self.node_id):
             self.successor = successor_predecessor
         
         tracker_proxy = self.connect_to(self.successor.split(":")[0], int(self.successor.split(":")[1]), 'tracker')
+        print('voy a entrar a notificar')
         tracker_proxy.notify(self.ip+":"+str(self.port))
 
     @Pyro4.expose
     def notify(self, node):
         print("notify")
-        if not self.predecessor or sha256_hash(node) in range (sha256_hash(self.predecessor), self.node_id):
+        print('Estoy printeando node: %s', node)
+
+        if not self.predecessor or sha256_hash(self.predecessor) == self.node_id or sha256_hash(node) in range (sha256_hash(self.predecessor), self.node_id):
             self.predecessor = node
         print(self.successor)
         print(self.predecessor)
+
 
     def fix_finger(self):
         print("fix_finger")
@@ -100,6 +105,7 @@ class Tracker(object):
             self.next_to_fix = 1
 
         self.finger_table[self.next_to_fix] = self.find_successor(self.node_id+2**(self.next_to_fix-1))
+        print(self.finger_table[self.next_to_fix])
 
     def check_predecessor(self):
         print("check predecessor")
