@@ -17,3 +17,14 @@ class Block():
     def update_block_status(self, new_state: BlockState):
         self.state = new_state
         
+    def __getstate__(self):
+        return {
+            'data': self.data,
+            'block_size': self.block_size,
+            'self.state': self.state
+        }
+    
+    def __setstate__(self, state):
+        self.data = state['data']
+        self.block_size = state['block_size']
+        self.state = state['state']

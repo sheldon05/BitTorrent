@@ -3,6 +3,7 @@ import os
 import math
 import random
 import serpent
+import base64
 from bclient_logger import logger
 from torrent_files_utils.torrent_creator import TorrentCreator
 from torrent_files_utils.torrent_reader import TorrentReader
@@ -14,6 +15,9 @@ from data_structs.block import Block, BlockState, DEFAULT_BLOCK_SIZE
 actual_path = os.getcwd()
 
 class BitTorrentClient:
+    
+
+    
     
     def __init__(self, ip, port):
         self.ip = ip 
@@ -64,7 +68,6 @@ class BitTorrentClient:
             tracker_proxy = self.connect_to(tracker_ip, tracker_port, 'tracker')
             for peer in tracker_proxy.get_peers(info.metainfo['info']['pieces']):
                 peers.append(peer)
-            tracker_proxy._pyroRelease()
         return peers
             # ahora tengo que conectarme al peers y preguntarle por las piezas que tiene
             #para elegir la mas rara para descargarla
@@ -73,20 +76,21 @@ class BitTorrentClient:
     def find_rarest_piece(self, peers, torrent_info : TorrentInfo, owned_pieces):
         count_of_pieces = [0 for i in range(torrent_info.number_of_pieces)]
         owners = [[] for i in range(torrent_info.number_of_pieces)]
+        print(peers)
         for ip, port in peers:
             proxy = self.connect_to(ip, port, 'client')
-            serpent_torrent_info = serpent.dumps(torrent_info) #kuko para pasar un torrent_info a un proxy hay que serializarlo con serpent
             print('voy a hacer get_bit_field')
-            peer_bit_field = proxy.get_bit_field_of(serpent_torrent_info)
+            peer_bit_field = proxy.get_bit_field_of(dict(torrent_info.metainfo['info']))
+            print('tengo el bitfield')
+            print(peer_bit_field)
             for i in range(len(peer_bit_field)):
                 if peer_bit_field[i]:
                     count_of_pieces[i] = count_of_pieces[i] + 1
                     owners[i].append((ip, port))
-            rarest_piece = count_of_pieces.index(min(count_of_pieces, lambda x:x))
-            while(owned_pieces[rares_piece]):
-                count_pieces[rarest_pieces] = math.inf
+            rarest_piece = count_of_pieces.index(min(count_of_pieces))
+            while(owned_pieces[rarest_piece]):
+                count_of_pieces[rarest_piece] = math.inf
                 rarest_piece = count_of_pieces.index(min(count_of_pieces, lambda x:x))
-            proxy._pyroRelease()
         return rarest_piece, owners[rarest_piece]
 
 
@@ -97,21 +101,23 @@ class BitTorrentClient:
         tr = TorrentReader(dottorrent_file_path)
         info = tr.build_torrent_info()
         peers = self.get_peers_from_tracker(info)
-        piece_manager_inst = PieceManager(info, save_at)
+        piece_manager_inst = PieceManager(info.metainfo['info'], save_at)
         
         self.update_trackers(info.get_trackers(), info.dottorrent_pieces)
         
         while not piece_manager_inst.completed:
             rarest_piece, owners = self.find_rarest_piece(peers, info, piece_manager_inst.bitfield)
             while len(owners)>0:
-                peer_for_download = owners[random.randint(len(owners))]
+                print('tengo un owner')
+                peer_for_download = owners[random.randint(0,len(owners)-1)]
                 owners.remove(peer_for_download)
-                try:
-                    piece_manager_inst.clean_memory(rarest_piece)
-                    self.dowload_piece_from_peer(peer_for_download, info, rarest_piece, piece_manager_inst)
-                    break
-                except:
-                    logger.error('Download error')
+                #try:
+                piece_manager_inst.clean_memory(rarest_piece)
+                print('voy a tratar de descargar la pieza')
+                self.dowload_piece_from_peer(peer_for_download, info, rarest_piece, piece_manager_inst)
+                break
+                # except:
+                #     logger.error('Download error')
             if not len(owners):
                 break
             
@@ -122,29 +128,20 @@ class BitTorrentClient:
         except:
             logger.error("Connection failure")
             return
-        for i in range(int(math.ceil(float(torrent_info.piece_size) / DEFAULT_BLOCK_SIZE))):
-            serpent_torrent_info = serpent.dumps(torrent_info) #KUKO para pasar un torrent_info a un proxy hay que serializarlo con serpent
-            raw_data = proxy_peer.get_block_of_piece(serpent_torrent_info, piece_index, i*DEFAULT_BLOCK_SIZE)
+        piece_size = torrent_info.file_size % torrent_info.piece_size if piece_index == piece_manager.number_of_pieces - 1 else torrent_info.piece_size
+        for i in range(int(math.ceil(float(piece_size) / DEFAULT_BLOCK_SIZE))):
+            received_block = proxy_peer.get_block_of_piece(dict(torrent_info.metainfo['info']), piece_index, i*DEFAULT_BLOCK_SIZE)
+            print('este es el bloque que me mandaron')
+            print(received_block)
+            raw_data = base64.b64decode(received_block['data']['data'])
             piece_manager.receive_block_piece(piece_index, i*DEFAULT_BLOCK_SIZE, raw_data)
-        
-        proxy_peer._pyroRelease()
+    
         
             
     #TODO: Check if the path must cointain /
     @Pyro4.expose
-    def get_bit_field_of(self, torrent_info, received_by_pyro=True):
-        if received_by_pyro:
-            print('estoy en get_bit_field')
-            torrent_info_dict = serpent.tobytes(torrent_info) #this is new because i add serpent encoder
-            torrent_info_dict = serpent.loads(torrent_info_dict)
-            print(torrent_info_dict)
-            print(type(torrent_info_dict['metainfo']))
-            print((torrent_info_dict['metainfo']))
-            print(type(torrent_info_dict['metainfo']['info']))
-            print(torrent_info_dict['metainfo']['info'])
-            torrent_info = TorrentInfo(torrent_info_dict['metainfo'])
-            print('y aqui tambien')
-        piece_manager = PieceManager(torrent_info, '/client_files')
+    def get_bit_field_of(self, info):
+        piece_manager = PieceManager(info, 'client_files')
         return piece_manager.bitfield
             
 
@@ -154,13 +151,11 @@ class BitTorrentClient:
     
     #TODO: Check if the path must cointain /
     @Pyro4.expose
-    def get_block_of_piece(self, torrent_info, piece_index, block_offset, received_by_pyro=True):
-        if received_by_pyro:
-            torrent_info_dict = serpent.tobytes(torrent_info) #this is new because i add serpent encoder
-            torrent_info_dict = serpent.loads(torrent_info_dict)
-            torrent_info = TorrentInfo(torrent_info_dict['metainfo'])
-
-        piece_manager = PieceManager(torrent_info, '/client_files')
+    def get_block_of_piece(self, info, piece_index, block_offset):
+        piece_manager = PieceManager(info, 'client_files')
+        print('la pieza tiene estos bloques')
+        print(piece_manager.pieces[piece_index].number_of_blocks)
+        print(piece_manager.get_block_piece(piece_index, block_offset).data)
         return piece_manager.get_block_piece(piece_index, block_offset)
 
     ###Testing scope

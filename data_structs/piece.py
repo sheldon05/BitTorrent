@@ -67,7 +67,7 @@ class Piece:
 
     #TODO: Handler logger in piece manager 
     def __valid_blocks(self, raw_data):
-        hash_raw_data = hashlib.sha1(raw_data).digest()
+        hash_raw_data = hashlib.sha1(raw_data).hexdigest()
         
         if hash_raw_data == self.piece_hash:
             logger.debug(f"Piece Hash of Piece{self.piece_index} validated successfully")
