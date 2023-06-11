@@ -68,7 +68,7 @@ class Tracker(object):
         else:
             node_id = self.closest_preceding_finger(key)[1]
             tracker_proxy = self.connect_to(node_id.split(":")[0], int(node_id.split(":")[1]), 'tracker')
-            return tracker_proxy.find_succesor(key)
+            return tracker_proxy.find_successor(key)
     
     def stabilize(self):
         print("stabilize")
