@@ -14,20 +14,6 @@ tr = TorrentReader(torrent_file_path)
 
 torrent_info = tr.build_torrent_info()
 
-#client_leecher.dowload_file(torrent_file_path, save_at='test')
+print(torrent_info.metainfo)
 
-prueba = Prueba(torrent_info, 'carro')
-
-ser_bytes = serpent.dumps(torrent_info)
-
-
-a = client_leecher.pyro_tester_caller(ser_bytes)
-
-c = serpent.tobytes(a)
-
-d = serpent.loads(c)
-
-print(d)
-
-print(d['trackers'])
-print(type(d['trackers']))
+client_leecher.dowload_file(torrent_file_path, save_at='test')

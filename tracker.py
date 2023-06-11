@@ -18,11 +18,10 @@ class Tracker(object):
 
     @Pyro4.expose
     def add_to_database(self, pieces_sha1, ip, port):
-        print('entre')
         print(type(pieces_sha1))
         if pieces_sha1 in self.database.keys():
             print("llegue aqui")
-            if not self.database[pieces_sha1].contains((ip, port)):
+            if not (ip,port) in self.database[pieces_sha1]:
                 self.database[pieces_sha1].append((ip, port))
 
         else:
@@ -31,7 +30,7 @@ class Tracker(object):
 
     def remove_from_database(self, pieces_sha1, ip, port):
         if pieces_sha1 in self.database.keys():
-            if self.database[pieces_sha1].contains((ip, port)):
+            if not (ip,port) in self.database[pieces_sha1]:
                 self.database[pieces_sha1].remove((ip, port))
 
     @Pyro4.expose

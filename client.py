@@ -23,13 +23,14 @@ class BitTorrentClient:
         #TODO:Put more trackers on .torrent 
 
 
-    def update_trackers(trackers, sha1, remove = False):
+    def update_trackers(self, trackers, sha1, remove : bool = False):
         if remove:
             for tracker_ip, tracker_port in trackers:
                 tracker_proxy = self.connect_to(tracker_ip, tracker_port, 'tracker')
                 tracker_proxy.remove_from_database(sha1, self.ip, self.port)
                 tracker_proxy._pyroRelease()
         else:
+            print('estoy haciendo update trackers')
             for tracker_ip, tracker_port in trackers:
                 tracker_proxy = self.connect_to(tracker_ip, tracker_port, 'tracker')
                 tracker_proxy.add_to_database(sha1, self.ip, self.port)
@@ -48,8 +49,10 @@ class BitTorrentClient:
         for url in tracker_urls:
             ip, port = url.split(':')
             trackers.append((ip, int(port)))
-            
-        self.update_trackers(trackers, ip, port, sha1_hash)
+        print(type(trackers))
+        print(trackers)
+        print('vamos a llamar a update trackers')
+        self.update_trackers(trackers, sha1_hash)
 
 
     def get_peers_from_tracker(self, torrent_info):
@@ -73,6 +76,7 @@ class BitTorrentClient:
         for ip, port in peers:
             proxy = self.connect_to(ip, port, 'client')
             serpent_torrent_info = serpent.dumps(torrent_info) #kuko para pasar un torrent_info a un proxy hay que serializarlo con serpent
+            print('voy a hacer get_bit_field')
             peer_bit_field = proxy.get_bit_field_of(serpent_torrent_info)
             for i in range(len(peer_bit_field)):
                 if peer_bit_field[i]:
@@ -119,7 +123,6 @@ class BitTorrentClient:
             logger.error("Connection failure")
             return
         for i in range(int(math.ceil(float(torrent_info.piece_size) / DEFAULT_BLOCK_SIZE))):
-            #raw_data = proxy_peer.get_block_of_piece(piece_index, i*DEFAULT_BLOCK_SIZE) esto era lo que tenias antes, me parece que te falta pasarle el torrent_info, abajo esta la que puse yo
             serpent_torrent_info = serpent.dumps(torrent_info) #KUKO para pasar un torrent_info a un proxy hay que serializarlo con serpent
             raw_data = proxy_peer.get_block_of_piece(serpent_torrent_info, piece_index, i*DEFAULT_BLOCK_SIZE)
             piece_manager.receive_block_piece(piece_index, i*DEFAULT_BLOCK_SIZE, raw_data)
@@ -129,11 +132,18 @@ class BitTorrentClient:
             
     #TODO: Check if the path must cointain /
     @Pyro4.expose
-    def get_bit_field_of(self, serpent_torrent_info):
-        torrent_info_dict = serpent.tobytes(serpent_torrent_info) #this is new because i add serpent encoder
-        torrent_info_dict = serpent.loads(torrent_info_dict)
-
-        torrent_info = TorrentInfo(torrent_info_dict['metainfo'])
+    def get_bit_field_of(self, torrent_info, received_by_pyro=True):
+        if received_by_pyro:
+            print('estoy en get_bit_field')
+            torrent_info_dict = serpent.tobytes(torrent_info) #this is new because i add serpent encoder
+            torrent_info_dict = serpent.loads(torrent_info_dict)
+            print(torrent_info_dict)
+            print(type(torrent_info_dict['metainfo']))
+            print((torrent_info_dict['metainfo']))
+            print(type(torrent_info_dict['metainfo']['info']))
+            print(torrent_info_dict['metainfo']['info'])
+            torrent_info = TorrentInfo(torrent_info_dict['metainfo'])
+            print('y aqui tambien')
         piece_manager = PieceManager(torrent_info, '/client_files')
         return piece_manager.bitfield
             
@@ -144,11 +154,12 @@ class BitTorrentClient:
     
     #TODO: Check if the path must cointain /
     @Pyro4.expose
-    def get_block_of_piece(self, serpent_torrent_info, piece_index, block_offset):
-        torrent_info_dict = serpent.tobytes(serpent_torrent_info) #this is new because i add serpent encoder
-        torrent_info_dict = serpent.loads(torrent_info_dict)
+    def get_block_of_piece(self, torrent_info, piece_index, block_offset, received_by_pyro=True):
+        if received_by_pyro:
+            torrent_info_dict = serpent.tobytes(torrent_info) #this is new because i add serpent encoder
+            torrent_info_dict = serpent.loads(torrent_info_dict)
+            torrent_info = TorrentInfo(torrent_info_dict['metainfo'])
 
-        torrent_info = TorrentInfo(torrent_info_dict['metainfo'])
         piece_manager = PieceManager(torrent_info, '/client_files')
         return piece_manager.get_block_piece(piece_index, block_offset)
 

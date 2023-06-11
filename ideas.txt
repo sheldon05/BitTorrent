@@ -1,0 +1,4 @@
+El traspaso del objeto TorrentInfo además de perder el formato del OrderedDict 'info' hace que en
+este los valores de md5sum, por ejemplo, se pierdan. Una alternativa sería no pasar el TorrentInfo, sino solo lo esencial
+para que TorrentReader desde el otro cliente se encargue de hacer un TorrentInfo, ya que en este debe existir el
+archivo .torrent 

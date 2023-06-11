@@ -7,7 +7,7 @@ torrent_file_path = os.path.join(actual_folder, 'client_files', 'archivo.txt')
 
 client_seeder = BitTorrentClient('127.0.0.1', 6201)
 
-#client_seeder.upload_file(torrent_file_path, ['127.0.0.1:6200'])
+client_seeder.upload_file(torrent_file_path, ['127.0.0.1:6200'])
 
 daemon = Pyro4.Daemon(host=client_seeder.ip, port= client_seeder.port)
 ns = Pyro4.locateNS()
