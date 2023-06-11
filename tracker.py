@@ -139,6 +139,10 @@ class Tracker(object):
             if not (ip,port) in self.database[pieces_sha1]:
                 self.database[pieces_sha1].remove((ip, port))
 
+    def add_to_trackers(self, pieces_sha1, ip, port):
+        pieces_sha256 = sha256_hash(pieces_sha1)
+
+
     @Pyro4.expose
     def dummy_response(self):
         return "DUMMY RESPONSE"

@@ -32,13 +32,11 @@ class BitTorrentClient:
             for tracker_ip, tracker_port in trackers:
                 tracker_proxy = self.connect_to(tracker_ip, tracker_port, 'tracker')
                 tracker_proxy.remove_from_database(sha1, self.ip, self.port)
-                tracker_proxy._pyroRelease()
         else:
             print('estoy haciendo update trackers')
             for tracker_ip, tracker_port in trackers:
                 tracker_proxy = self.connect_to(tracker_ip, tracker_port, 'tracker')
-                tracker_proxy.add_to_database(sha1, self.ip, self.port)
-                tracker_proxy._pyroRelease()
+                tracker_proxy.add_to_trackers(sha1, self.ip, self.port)
             
     def upload_file(self, path, tracker_urls, private = False, comments = "unknow", source = "unknow" ):
         '''
