@@ -15,7 +15,7 @@ class Tracker(object):
         self.predecessor: str = ""
         self.next_to_fix: int = 0
         #aqui tengo duda de xq guardar informacion de 160 claves
-        self.finger_table: list[[int,str]] = [0,""]*161
+        self.finger_table: list[[int,str]] = [0,""]*4
 
         # keys are the concatenation of sha1 hash of the pieces of the files, pieces key in .torrent
         # values ip and port of the peers that potentially have the piece  , list of tuples (ip,port)
