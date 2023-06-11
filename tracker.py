@@ -15,8 +15,7 @@ class Tracker(object):
         self.predecessor: str = ""
         self.next_to_fix: int = 0
         #aqui tengo duda de xq guardar informacion de 160 claves
-        self.finger_table: list[[int,str]] = [0,""]*4
-        
+        self.finger_table: list[[int,str]] = [[0,""] for _ in range(4)] 
 
         # keys are the concatenation of sha1 hash of the pieces of the files, pieces key in .torrent
         # values ip and port of the peers that potentially have the piece  , list of tuples (ip,port)
@@ -48,10 +47,9 @@ class Tracker(object):
 
     def closest_preceding_finger(self, id):
         for i in range(len(self.finger_table)-1, -1, -1):
-            print(self.finger_table[i])
             if self.finger_table[i][0] in range(self.node_id+1, id):
                 return self.finger_table[i]
-        return (self.node_id,self.ip+':'+str(self.port))
+        return [self.node_id,self.ip+':'+str(self.port)]
 
     @Pyro4.expose
     def find_successor(self, key):
@@ -59,7 +57,7 @@ class Tracker(object):
         successor = self.successor
         node_id = self.node_id
         if node_id == sha256_hash(successor):
-            return (node_id, self.ip+":"+str(self.port))
+            return [node_id, self.ip+":"+str(self.port)]
         print(node_id)
         print(key)
         print(sha256_hash(successor))
@@ -67,7 +65,7 @@ class Tracker(object):
             print("sucessor:" + successor)
             return (sha256_hash(successor), successor)
         elif sha256_hash(self.predecessor) > self.node_id:
-            return (node_id, self.ip+":"+str(self.port)) 
+            return [node_id, self.ip+":"+str(self.port)] 
         else:
             node_id = self.closest_preceding_finger(key)[1]
             tracker_proxy = self.connect_to(node_id.split(":")[0], int(node_id.split(":")[1]), 'tracker')
@@ -105,7 +103,7 @@ class Tracker(object):
             self.next_to_fix = 1
 
         self.finger_table[self.next_to_fix] = self.find_successor(self.node_id+2**(self.next_to_fix-1))
-        print(self.finger_table[self.next_to_fix])
+        
 
     def check_predecessor(self):
         print("check predecessor")
