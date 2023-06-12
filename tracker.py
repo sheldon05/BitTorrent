@@ -1,6 +1,7 @@
 import Pyro4
 import hashlib
 from threading import Timer
+from copy import copy
 
 def sha256_hash(s):
     return int(hashlib.sha256(s.encode()).hexdigest(), 16)
@@ -63,6 +64,10 @@ class Tracker(object):
             if not (ip,port) in self.database[pieces_sha1]:
                 self.database[pieces_sha1].remove((ip, port))
 
+    @Pyro4.expose
+    def remove_key_from_database(self, key):
+        self.database.pop(key)
+
 
     def add_to_trackers(self, pieces_sha1, ip, port):
         pieces_sha256 = sha256_hash(pieces_sha1)
@@ -71,10 +76,27 @@ class Tracker(object):
 
 
     def distribute_information(self):
-        for pieces_sha256, ip, port in self.database.items():
+        for pieces_sha256, peers in copy(self.database.items()):
             owner_ip, owner_port = self.find_successor(pieces_sha256).split(':')
             owner_proxy = self.connect_to(owner_ip, int(owner_port), 'tracker')
-            owner_proxy.add_to_database(pieces_sha256, ip, port)
+
+            if owner_proxy.node_id == self.node_id:
+                continue
+
+            for ip, port in peers:
+                owner_proxy.add_to_database(pieces_sha256, ip, port)
+
+            self.database.pop(pieces_sha256)
+
+        successor_ip, successor_port = self.successor.split(':')
+        successor_proxy = self.connect_to(successor_ip, int(successor_port), 'tracker')
+
+        for pieces_sha256, peers in copy(successor_proxy.database.items()):
+            if pieces_sha256 <= self.node_id:
+                for ip, port in peers:
+                    self.add_to_database(pieces_sha256, ip, port)
+
+                successor_proxy.remove_key_from_database(pieces_sha256)
 
 
     def find_successor(self, key):

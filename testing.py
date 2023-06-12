@@ -19,15 +19,14 @@ class Prueba:
 a = 'XrY7u+Ae7tCTyyK7j1rNww=='
 b = b'^\xb6;\xbb\xe0\x1e\xee\xd0\x93\xcb"\xbb\x8fZ\xcd\xc3'
 
-e = sha256(("127.0.0.1", 4000))
 
+a1, a2, a3 = ('abc', ('123', 8080))
+print(a1, a2, a3)
 
 c = base64.b64decode(a)
 
 string = 1
 
 string1 = sha1(string).digest()
-print(len(string1))
 
 string1 = sha1(string).hexdigest()
-print(len(string1))
