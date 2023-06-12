@@ -1,5 +1,5 @@
 import base64
-from hashlib import sha1
+from hashlib import sha1, sha256
 
 class Prueba:
     def __init__(self, a, b):
@@ -18,6 +18,9 @@ class Prueba:
 
 a = 'XrY7u+Ae7tCTyyK7j1rNww=='
 b = b'^\xb6;\xbb\xe0\x1e\xee\xd0\x93\xcb"\xbb\x8fZ\xcd\xc3'
+
+e = sha256(("127.0.0.1", 4000))
+
 
 c = base64.b64decode(a)
 

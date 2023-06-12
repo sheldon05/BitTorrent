@@ -52,10 +52,19 @@ class Tracker(object):
             if not (ip,port) in self.database[pieces_sha1]:
                 self.database[pieces_sha1].remove((ip, port))
 
+
     def add_to_trackers(self, pieces_sha1, ip, port):
         pieces_sha256 = sha256_hash(pieces_sha1)
         if self.successor == '':
             self.add_to_database(pieces_sha256, ip, port)
+
+
+    
+    def distribute_information(self):
+        for pieces_sha256, ip, port in self.database.items():
+            owner_ip, owner_port = self.find_successor(pieces_sha256).split(':')
+            owner_proxy = self.connect_to(owner_ip, int(owner_port), 'tracker')
+            owner_proxy.add_to_database(pieces_sha256, ip, port)
 
 
     def find_successor(self, key):
@@ -82,7 +91,35 @@ class Tracker(object):
             
     def join(self, ip, port):
         pass
-               
+
+    def leave(self):
+        successor = self.find_succesor(self.node_id)
+        #connect to succesor
+        tracker_proxy = self.connect_to(successor.split(":")[0], int(successor.split(":")[1]))
+        database_successor = tracker_proxy.get_data()
+        for key, peers in self.database.items():
+            if key in database_successor.keys():
+                database_successor[key] += [i for i in peers if i not in database_successor[key]]
+            else:
+                database_successor[key] = peers
+       
+        predecessor = self.predecessor
+        successor.set_predecessor(predecessor)
+        #connect to predecesor
+        tracker_proxy = self.connect_to(predecessor.split(":")[0], int(predecessor.split(":")[1]))
+        tracker_proxy.set_succesor(predecessor)
+
+        # maybe this is not necessary
+        self.predecessor = ""
+        self.sucessor = ""
+
+    @Pyro4.expose
+    def set_successor(self,node):
+        self.successor = node
+
+    @Pyro4.expose
+    def set_predecessor(self, node):
+        self.predecessor = node
                
     def chord_neighbors_update(self, ip, port, is_predecessor : bool = True):
         pass
