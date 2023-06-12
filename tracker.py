@@ -73,10 +73,39 @@ class Tracker(object):
                 proxy_tracker = self.connect_to(ip_next, int(port_next), 'tracker')
                 if proxy_tracker.node_id<actual_node_id:
                     self.chord_neighbors_update(ip_next, port_next, is_predecessor= False)
-               
+
+    def leave(self):
+        successor = self.find_succesor(self.node_id)
+        #connect to succesor
+        tracker_proxy = self.connect_to(successor.split(":")[0], int(successor.split(":")[1]))
+        database_successor = tracker_proxy.get_data()
+        for key, peers in self.database.items():
+            if key in database_successor.keys():
+                database_successor[key] += [i for i in peers if i not in database_successor[key]]
+            else:
+                database_successor[key] = peers
+       
+        predecessor = self.predecessor
+        successor.set_predecessor(predecessor)
+        #connect to predecesor
+        tracker_proxy = self.connect_to(predecessor.split(":")[0], int(predecessor.split(":")[1]))
+        tracker_proxy.set_succesor(predecessor)
+
+        # maybe this is not necessary
+        self.predecessor = ""
+        self.sucessor = ""
+
+    @Pyro4.expose
+    def set_successor(self,node):
+        self.successor = node
+
+    @Pyro4.expose
+    def set_predecessor(self, node):
+        self.predecessor = node
                
     def chord_neighbors_update(self, ip, port, is_predecessor : bool = True):
-        if 
+        pass
+
     
     
     @Pyro4.expose
