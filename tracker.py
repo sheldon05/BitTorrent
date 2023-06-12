@@ -51,7 +51,7 @@ class Tracker(object):
         print(type(pieces_sha256))
         if pieces_sha256 in self.database.keys():
             print("llegue aqui")
-            if not (ip,port) in self.database[pieces_sha1]:
+            if not (ip,port) in self.database[pieces_sha256]:
                 self.database[pieces_sha256].append((ip, port))
 
         else:
