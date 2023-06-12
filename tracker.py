@@ -127,7 +127,7 @@ class Tracker(object):
        
         for key, peers in self.database.items():
             for ip, port in peers:
-                successor.add_to_database(key, ip, int(port))
+                tracker_proxy.add_to_database(key, ip, int(port))
        
         predecessor = self.predecessor
         successor.set_predecessor(predecessor)
