@@ -17,12 +17,23 @@ class Tracker(object):
         # values ip and port of the peers that potentially have the piece  , list of tuples (ip,port)
         self.database = {}
 
+
     @Pyro4.expose
     def get_peers(self, pieces_sha1):
-        peers = self.database[pieces_sha1]
+        pieces_sha256 = sha256_hash(pieces_sha1)
+
+        owner_ip, owner_port = self.find_successor(pieces_sha256).split(':')
+        owner_proxy = self.connect_to(owner_ip, int(owner_port), 'tracker')
+
+        try:
+            peers = owner_proxy.database[pieces_sha256]
+        except KeyError:
+            print("Not exist the torrent file")
+            peers = []
 
         return peers
-    
+
+
     @Pyro4.expose
     def get_ip_port(self):
         return f'{self.ip}:{str(self.port)}'    
@@ -36,37 +47,41 @@ class Tracker(object):
         return self.successor
 
     @Pyro4.expose
-    def add_to_database(self, pieces_sha1, ip, port):
-        print(type(pieces_sha1))
-        if pieces_sha1 in self.database.keys():
+    def add_to_database(self, pieces_sha256, ip, port):
+        print(type(pieces_sha256))
+        if pieces_sha256 in self.database.keys():
             print("llegue aqui")
             if not (ip,port) in self.database[pieces_sha1]:
-                self.database[pieces_sha1].append((ip, port))
+                self.database[pieces_sha256].append((ip, port))
 
         else:
-            self.database[pieces_sha1] = [(ip, port)]
+            self.database[pieces_sha256] = [(ip, port)]
 
-
+    @Pyro4.expose
     def remove_from_database(self, pieces_sha1, ip, port):
         if pieces_sha1 in self.database.keys():
             if not (ip,port) in self.database[pieces_sha1]:
                 self.database[pieces_sha1].remove((ip, port))
 
-
+    @Pyro4.expose
     def add_to_trackers(self, pieces_sha1, ip, port):
         pieces_sha256 = sha256_hash(pieces_sha1)
         if self.successor == '':
             self.add_to_database(pieces_sha256, ip, port)
+        else:
+            tracker_ip, tracker_port = self.find_successor(pieces_sha256).split(':')
+            proxy_tracker = self.connect_to(tracker_ip, int(tracker_port, 'tracker'))
+            proxy_tracker.add_to_database(pieces_sha256, ip, port)
+            
 
 
-    
     def distribute_information(self):
         for pieces_sha256, ip, port in self.database.items():
             owner_ip, owner_port = self.find_successor(pieces_sha256).split(':')
             owner_proxy = self.connect_to(owner_ip, int(owner_port), 'tracker')
             owner_proxy.add_to_database(pieces_sha256, ip, port)
 
-
+    @Pyro4.expose
     def find_successor(self, key):
         if (key < self.node_id):
             ip_next, port_next = proxy_tracker.get_predecessor().split(':')
@@ -90,7 +105,20 @@ class Tracker(object):
             return proxy_tracker.get_ip_port()
             
     def join(self, ip, port):
-        pass
+        proxy_tracker = self.connect_to(ip, port, 'tracker')
+        succesor = proxy_tracker.find_successor(self.node_id)
+        self.successor = succesor
+        suc_ip, suc_port = succesor.split(':') 
+        proxy_tracker = self.connect_to(suc_ip, int(suc_port))
+        self.predecessor = proxy_tracker.get_predecessor()
+        proxy_tracker.set_predecessor(self.get_ip_port)
+        pre_ip, pre_port = self.predecessor.split(':')
+        proxy_tracker = self.connect_to(pre_ip, int(pre_port))
+        proxy_tracker.set_successor(self.get_ip_port)
+        self.distribute_information()
+        
+        
+
 
     def leave(self):
         successor = self.find_succesor(self.node_id)
@@ -111,15 +139,15 @@ class Tracker(object):
         self.predecessor = ""
         self.sucessor = ""
 
+
     @Pyro4.expose
     def set_successor(self,node):
         self.successor = node
 
+
     @Pyro4.expose
     def set_predecessor(self, node):
         self.predecessor = node
-
-        
                
     @Pyro4.expose
     def dummy_response(self):
