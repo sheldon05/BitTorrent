@@ -11,16 +11,13 @@ class Tracker(object):
         self.ip = ip
         self.port = port
         self.node_id = sha256_hash(self.ip + ':' + str(self.port))
-        self.successor:str = self.ip + ':' + str(self.port)
-        self.predecessor: str = ""
-        self.next_to_fix: int = 0
-        #aqui tengo duda de xq guardar informacion de 160 claves
-        self.finger_table: list[[int,str]] = [[0,""] for _ in range(4)] 
-
+        self.sucessor = '' # 'IP:PORT'
+        self.predecessor = '' # 'IP:PORT'
         # keys are the concatenation of sha1 hash of the pieces of the files, pieces key in .torrent
         # values ip and port of the peers that potentially have the piece  , list of tuples (ip,port)
         self.database = {}
 
+<<<<<<< HEAD
     def run_chord(self):
         self.stabilize()
         self.fix_finger()
@@ -132,6 +129,8 @@ class Tracker(object):
    
 
 
+=======
+>>>>>>> 5a27bd1cda24ac7742f7a60e5c362ce92b7ad5d9
     @Pyro4.expose
     def get_peers(self, pieces_sha1):
         peers = self.database[pieces_sha1]
@@ -157,8 +156,34 @@ class Tracker(object):
 
     def add_to_trackers(self, pieces_sha1, ip, port):
         pieces_sha256 = sha256_hash(pieces_sha1)
+        if self.sucessor == '':
+            self.add_to_database(pieces_sha256, ip, port)
 
-
+    def join(self, ip, port):
+        proxy_tracker = self.connect_to(ip, port, 'tracker')
+        start_tracker_id = proxy_tracker.node_id
+        if (start_tracker_id > self.node_id):
+           while(proxy_tracker.node_id > self.node_id):
+               actual_node_id = proxy_tracker.node_id
+               
+               ip_next, port_next = proxy_tracker.predecessor.split(':')
+               proxy_tracker = self.connect_to(ip_next, int(port_next), 'tracker')
+               if proxy_tracker.node_id>actual_node_id:
+                   self.chord_neighbors_update(ip_next, port_next)
+        else:
+            while(proxy_tracker.node_id < self.node_id):
+                actual_node_id = proxy_tracker.node_id
+                
+                ip_next, port_next = proxy_tracker.sucessor.split(':')
+                proxy_tracker = self.connect_to(ip_next, int(port_next), 'tracker')
+                if proxy_tracker.node_id<actual_node_id:
+                    self.chord_neighbors_update(ip_next, port_next, is_predecessor= False)
+               
+               
+    def chord_neighbors_update(self, ip, port, is_predecessor : bool = True):
+        if 
+    
+    
     @Pyro4.expose
     def dummy_response(self):
         return "DUMMY RESPONSE"
