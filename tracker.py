@@ -17,12 +17,23 @@ class Tracker(object):
         # values ip and port of the peers that potentially have the piece  , list of tuples (ip,port)
         self.database = {}
 
+
     @Pyro4.expose
     def get_peers(self, pieces_sha1):
-        peers = self.database[pieces_sha1]
+        pieces_sha256 = sha256_hash(pieces_sha1)
+
+        owner_ip, owner_port = self.find_successor(pieces_sha256).split(':')
+        owner_proxy = self.connect_to(owner_ip, int(owner_port), 'tracker')
+
+        try:
+            peers = owner_proxy.database[pieces_sha256]
+        except KeyError:
+            print("Not exist the torrent file")
+            peers = []
 
         return peers
-    
+
+
     @Pyro4.expose
     def get_ip_port(self):
         return f'{self.ip}:{str(self.port)}'    
@@ -64,7 +75,6 @@ class Tracker(object):
             
 
 
-    
     def distribute_information(self):
         for pieces_sha256, ip, port in self.database.items():
             owner_ip, owner_port = self.find_successor(pieces_sha256).split(':')
@@ -93,7 +103,8 @@ class Tracker(object):
                 if proxy_tracker.node_id < actual_node_id:
                     return proxy_tracker.get_ip_port()
             return proxy_tracker.get_ip_port()
-            
+
+
     def join(self, ip, port):
         proxy_tracker = self.connect_to(ip, port, 'tracker')
         succesor = proxy_tracker.find_successor(self.node_id)
@@ -109,11 +120,13 @@ class Tracker(object):
         
         
 
+
     def leave(self):
         successor = self.find_succesor(self.node_id)
         #connect to succesor
-        tracker_proxy = self.connect_to(successor.split(":")[0], int(successor.split(":")[1]))
+        tracker_proxy = self.connect_to(successor.split(":")[0], int(successor.split(":")[1]), 'tracker')
         database_successor = tracker_proxy.get_data()
+
         for key, peers in self.database.items():
             if key in database_successor.keys():
                 database_successor[key] += [i for i in peers if i not in database_successor[key]]
@@ -123,25 +136,24 @@ class Tracker(object):
         predecessor = self.predecessor
         successor.set_predecessor(predecessor)
         #connect to predecesor
-        tracker_proxy = self.connect_to(predecessor.split(":")[0], int(predecessor.split(":")[1]))
+        tracker_proxy = self.connect_to(predecessor.split(":")[0], int(predecessor.split(":")[1]), 'tracker')
         tracker_proxy.set_succesor(predecessor)
 
         # maybe this is not necessary
         self.predecessor = ""
         self.sucessor = ""
 
+
     @Pyro4.expose
     def set_successor(self,node):
         self.successor = node
 
+
     @Pyro4.expose
     def set_predecessor(self, node):
         self.predecessor = node
+         
                
-    def chord_neighbors_update(self, ip, port, is_predecessor : bool = True):
-        pass
-    
-    
     @Pyro4.expose
     def dummy_response(self):
         return "DUMMY RESPONSE"
