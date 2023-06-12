@@ -152,8 +152,8 @@ class Tracker(object):
     @Pyro4.expose
     def set_predecessor(self, node):
         self.predecessor = node
-         
-               
+            
+
     @Pyro4.expose
     def dummy_response(self):
         return "DUMMY RESPONSE"
