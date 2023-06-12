@@ -90,7 +90,8 @@ class Tracker(object):
 
 
     def distribute_information(self):
-        for pieces_sha256, peers in copy(self.database.items()):
+        print('voy a distribuir la info')
+        for pieces_sha256, peers in self.database.items():
             owner_ip, owner_port = self.find_successor(pieces_sha256).split(':')
             owner_proxy = self.connect_to(owner_ip, int(owner_port), 'tracker')
 
@@ -105,13 +106,14 @@ class Tracker(object):
         successor_ip, successor_port = self.successor.split(':')
         successor_proxy = self.connect_to(successor_ip, int(successor_port), 'tracker')
 
-        for pieces_sha256, peers in copy(successor_proxy.get_database().items()):
+        for pieces_sha256, peers in successor_proxy.get_database().items():
             if pieces_sha256 <= self.node_id:
                 for ip, port in peers:
                     self.add_to_database(pieces_sha256, ip, port)
 
                 successor_proxy.remove_key_from_database(pieces_sha256)
-
+        print(self.node_id)
+        print(self.database)
     @Pyro4.expose
     def find_successor(self, key):
         if (key < self.node_id):
@@ -137,15 +139,21 @@ class Tracker(object):
             
     def join(self, ip, port):
         proxy_tracker = self.connect_to(ip, port, 'tracker')
-        succesor = proxy_tracker.find_successor(self.node_id)
-        self.successor = succesor
-        suc_ip, suc_port = succesor.split(':') 
-        proxy_tracker = self.connect_to(suc_ip, int(suc_port))
-        self.predecessor = proxy_tracker.get_predecessor()
-        proxy_tracker.set_predecessor(self.get_ip_port)
-        pre_ip, pre_port = self.predecessor.split(':')
-        proxy_tracker = self.connect_to(pre_ip, int(pre_port))
-        proxy_tracker.set_successor(self.get_ip_port)
+        if proxy_tracker.get_successor() == '':
+            self.successor = proxy_tracker.get_ip_port()
+            self.predecessor = proxy_tracker.get_ip_port()
+            proxy_tracker.set_successor(self.get_ip_port())
+            proxy_tracker.set_predecessor(self.get_ip_port())
+        else:
+            succesor = proxy_tracker.find_successor(self.node_id)
+            self.successor = succesor
+            suc_ip, suc_port = succesor.split(':') 
+            proxy_tracker = self.connect_to(suc_ip, int(suc_port))
+            self.predecessor = proxy_tracker.get_predecessor()
+            proxy_tracker.set_predecessor(self.get_ip_port)
+            pre_ip, pre_port = self.predecessor.split(':')
+            proxy_tracker = self.connect_to(pre_ip, int(pre_port))
+            proxy_tracker.set_successor(self.get_ip_port)
         self.distribute_information()
         
         

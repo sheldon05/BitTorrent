@@ -22,7 +22,6 @@ time.sleep(1)
 
 t2 = Thread(target=tracker.join, args=('127.0.0.1', 6200))
 t2.start()
-time.sleep(1)
 
 t1.join()
 t2.join()
