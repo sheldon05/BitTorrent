@@ -28,13 +28,16 @@ class Tracker(object):
         print('esta es la finger_table')
         print(self.finger_table)
         Timer(1, self.run_chord, []).start()
-
         
     
     def join(self, ip, port) -> None:
         tracker_proxy = self.connect_to(ip, port, 'tracker')
         print(str(self.node_id) + 'algo!!!!!!!!!!!!!!')
-        self.successor = tracker_proxy.find_successor(self.node_id)[1]    
+        self.successor = tracker_proxy.find_successor(self.node_id)[1]
+
+
+    def distribute_information():
+        
         
 
 
@@ -56,6 +59,7 @@ class Tracker(object):
     @Pyro4.expose
     def find_successor(self, key):
         print("find succesor")
+        print(self.successor)
         successor = self.successor
         node_id = self.node_id
         if node_id == sha256_hash(successor):
