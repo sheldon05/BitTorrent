@@ -2,7 +2,6 @@ from client import BitTorrentClient
 from torrent_files_utils.torrent_reader import TorrentReader
 import os
 from torrent_files_utils.torrent_reader import TorrentReader
-from testing import Prueba
 import serpent
 
 actual_folder = os.getcwd()

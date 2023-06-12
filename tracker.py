@@ -23,17 +23,26 @@ class Tracker(object):
     def get_peers(self, pieces_sha1):
         pieces_sha256 = sha256_hash(pieces_sha1)
 
-        owner_ip, owner_port = self.find_successor(pieces_sha256).split(':')
-        owner_proxy = self.connect_to(owner_ip, int(owner_port), 'tracker')
+        if self.successor != '':
+            owner_ip, owner_port = self.find_successor(pieces_sha256).split(':')
+            owner_proxy = self.connect_to(owner_ip, int(owner_port), 'tracker')
 
-        try:
-            peers = owner_proxy.database[pieces_sha256]
-        except KeyError:
-            print("Not exist the torrent file")
-            peers = []
-
+            try:
+                peers = owner_proxy.get_database()[pieces_sha256]
+            except KeyError:
+                print("Not exist the torrent file")
+                peers = []
+        else:
+            try:
+                peers = self.database[pieces_sha256]
+            except KeyError:
+                print("Not exist the torrent file")
+                peers = []
         return peers
 
+    @Pyro4.expose
+    def get_database(self):
+        return self.database
 
     @Pyro4.expose
     def get_ip_port(self):
@@ -68,7 +77,7 @@ class Tracker(object):
     def remove_key_from_database(self, key):
         self.database.pop(key)
 
-
+    @Pyro4.expose
     def add_to_trackers(self, pieces_sha1, ip, port):
         pieces_sha256 = sha256_hash(pieces_sha1)
         if self.successor == '':
@@ -96,7 +105,7 @@ class Tracker(object):
         successor_ip, successor_port = self.successor.split(':')
         successor_proxy = self.connect_to(successor_ip, int(successor_port), 'tracker')
 
-        for pieces_sha256, peers in copy(successor_proxy.database.items()):
+        for pieces_sha256, peers in copy(successor_proxy.get_database().items()):
             if pieces_sha256 <= self.node_id:
                 for ip, port in peers:
                     self.add_to_database(pieces_sha256, ip, port)
@@ -106,7 +115,7 @@ class Tracker(object):
     @Pyro4.expose
     def find_successor(self, key):
         if (key < self.node_id):
-            ip_next, port_next = proxy_tracker.get_predecessor().split(':')
+            ip_next, port_next = self.get_predecessor().split(':')
             proxy_tracker = self.connect_to(ip_next, int(port_next), 'tracker')
             while(key < proxy_tracker.node_id):
                 actual_node_id = proxy_tracker.node_id
@@ -116,7 +125,7 @@ class Tracker(object):
                     return proxy_tracker.get_succesor()
             return proxy_tracker.get_succesor()
         else:
-            ip_next, port_next = proxy_tracker.get_successor().split(':')
+            ip_next, port_next = self.get_successor().split(':')
             proxy_tracker = self.connect_to(ip_next, int(port_next), 'tracker')
             while(key > proxy_tracker.node_id):
                 actual_node_id = proxy_tracker.node_id

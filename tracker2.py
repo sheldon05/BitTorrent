@@ -9,7 +9,7 @@ def run_tracker_service(tracker):
     daemon.requestLoop()
 
 
-tracker = Tracker("127.0.0.1", 6204)
+tracker = Tracker("127.0.0.1", 6202)
 
 daemon = Pyro4.Daemon(host=tracker.ip, port= tracker.port)
 ns = Pyro4.locateNS()
@@ -24,9 +24,6 @@ t2 = Thread(target=tracker.join, args=('127.0.0.1', 6200))
 t2.start()
 time.sleep(1)
 
-t3 = Thread(target=tracker.run_chord())
-
-t3.start()
 t1.join()
 t2.join()
 t3.join()
