@@ -95,8 +95,9 @@ class Tracker(object):
     def leave(self):
         successor = self.find_succesor(self.node_id)
         #connect to succesor
-        tracker_proxy = self.connect_to(successor.split(":")[0], int(successor.split(":")[1]),'tracker')
+        tracker_proxy = self.connect_to(successor.split(":")[0], int(successor.split(":")[1]), 'tracker')
         database_successor = tracker_proxy.get_data()
+
         for key, peers in self.database.items():
             if key in database_successor.keys():
                 database_successor[key] += [i for i in peers if i not in database_successor[key]]
@@ -106,7 +107,7 @@ class Tracker(object):
         predecessor = self.predecessor
         successor.set_predecessor(predecessor)
         #connect to predecesor
-        tracker_proxy = self.connect_to(predecessor.split(":")[0], int(predecessor.split(":")[1]),'tracker')
+        tracker_proxy = self.connect_to(predecessor.split(":")[0], int(predecessor.split(":")[1]), 'tracker')
         tracker_proxy.set_succesor(predecessor)
 
         # maybe this is not necessary
@@ -121,10 +122,6 @@ class Tracker(object):
     def set_predecessor(self, node):
         self.predecessor = node
                
-    def chord_neighbors_update(self, ip, port, is_predecessor : bool = True):
-        pass
-    
-    
     @Pyro4.expose
     def dummy_response(self):
         return "DUMMY RESPONSE"
