@@ -65,6 +65,7 @@ class Tracker(object):
                 self.database[pieces_sha256].append((ip, port))
 
         else:
+            print(f'annadi la pieza a la database de {self.port}')
             self.database[pieces_sha256] = [(ip, port)]
 
     @Pyro4.expose
@@ -105,15 +106,23 @@ class Tracker(object):
 
         successor_ip, successor_port = self.successor.split(':')
         successor_proxy = self.connect_to(successor_ip, int(successor_port), 'tracker')
-
+        print('voy a entrar al for')
+        print(successor_proxy.get_database())
         for pieces_sha256, peers in successor_proxy.get_database().items():
-            if pieces_sha256 <= self.node_id:
+            print(f'estoy revisando la pieza {pieces_sha256}')
+            if pieces_sha256 <= self.node_id or (self.node_id<sha256_hash(successor_proxy.get_ip_port()) and pieces_sha256>sha256_hash(successor_proxy.get_ip_port()) and successor_proxy.get_successor()==self.get_ip_port()):
+                print(f'la tenia que copiar para mi')
                 for ip, port in peers:
+                    print('voy a annadirla')
                     self.add_to_database(pieces_sha256, ip, port)
 
                 successor_proxy.remove_key_from_database(pieces_sha256)
         print(self.node_id)
+        print('mi database')
         print(self.database)
+        print('la otra')
+        proxy_test = self.connect_to('127.0.0.1', 6200, 'tracker')
+        print(proxy_test.get_database())
     @Pyro4.expose
     def find_successor(self, key):
         if (key < self.node_id):

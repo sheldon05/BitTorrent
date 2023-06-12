@@ -7,7 +7,7 @@ import serpent
 actual_folder = os.getcwd()
 torrent_file_path = os.path.join(actual_folder, 'torrent_files', 'archivo.torrent')
 
-client_leecher = BitTorrentClient('127.0.0.1', 6203)
+client_leecher = BitTorrentClient('127.0.0.1', 6204)
 
 tr = TorrentReader(torrent_file_path)
 
