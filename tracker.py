@@ -96,13 +96,10 @@ class Tracker(object):
         successor = self.find_succesor(self.node_id)
         #connect to succesor
         tracker_proxy = self.connect_to(successor.split(":")[0], int(successor.split(":")[1]), 'tracker')
-        database_successor = tracker_proxy.get_data()
-
+       
         for key, peers in self.database.items():
-            if key in database_successor.keys():
-                database_successor[key] += [i for i in peers if i not in database_successor[key]]
-            else:
-                database_successor[key] = peers
+            for ip, port in peers:
+                successor.add_to_database(key, ip, int(port))
        
         predecessor = self.predecessor
         successor.set_predecessor(predecessor)
@@ -121,6 +118,8 @@ class Tracker(object):
     @Pyro4.expose
     def set_predecessor(self, node):
         self.predecessor = node
+
+        
                
     @Pyro4.expose
     def dummy_response(self):
