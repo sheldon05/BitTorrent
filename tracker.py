@@ -100,7 +100,7 @@ class Tracker(object):
             owner_ip, owner_port = self.find_successor(pieces_sha256).split(':')
             owner_proxy = self.connect_to(owner_ip, int(owner_port), 'tracker')
 
-            if owner_proxy.node_id == self.node_id:
+            if owner_proxy.get_node_id() == self.node_id:
                 continue
 
             for ip, port in peers:
@@ -109,24 +109,40 @@ class Tracker(object):
             self.database.pop(pieces_sha256)
 
         successor_ip, successor_port = self.successor.split(':')
+        predecessor_ip, predecessor_port = self.predecessor.split(':')
+        
         successor_proxy = self.connect_to(successor_ip, int(successor_port), 'tracker')
-        print('voy a entrar al for')
-        print(successor_proxy.get_database())
-        for pieces_sha256, peers in successor_proxy.get_database().items():
-            print(f'estoy revisando la pieza {pieces_sha256}')
-            if pieces_sha256 <= self.node_id or (self.node_id<sha256_hash(successor_proxy.get_ip_port()) and pieces_sha256>sha256_hash(successor_proxy.get_ip_port()) and successor_proxy.get_successor()==self.get_ip_port()):
-                print(f'la tenia que copiar para mi')
-                for ip, port in peers:
-                    print('voy a annadirla')
-                    self.add_to_database(pieces_sha256, ip, port)
+        predecessor_proxy = self.connect_to(predecessor_ip, int(predecessor_port), 'tracker')
+        
+        if successor_proxy.get_node_id() < self.node_id:
+            for pieces_sha256, peers in successor_proxy.get_database().items():
+                if pieces_sha256 <= self.node_id and pieces_sha256 > successor_proxy.get_node_id():
+                    for ip, port in peers:
+                        self.add_to_database(pieces_sha256, ip, port)
+                        
+        elif predecessor_proxy.get_node_id() > self.node_id:
+            for pieces_sha256, peers in successor_proxy.get_database().items():
+                if pieces_sha256 <= self.node_id or pieces_sha256 > successor_proxy.get_node_id():
+                    for ip, port in peers:
+                        self.add_to_database(pieces_sha256, ip, port)
+        else:
+            print('voy a entrar al for')
+            print(successor_proxy.get_database())
+            for pieces_sha256, peers in successor_proxy.get_database().items():
+                print(f'estoy revisando la pieza {pieces_sha256}')
+                if pieces_sha256 <= self.node_id or (self.node_id<sha256_hash(successor_proxy.get_ip_port()) and pieces_sha256>sha256_hash(successor_proxy.get_ip_port()) and successor_proxy.get_successor()==self.get_ip_port()):
+                    print(f'la tenia que copiar para mi')
+                    for ip, port in peers:
+                        print('voy a annadirla')
+                        self.add_to_database(pieces_sha256, ip, port)
 
-                successor_proxy.remove_key_from_database(pieces_sha256)
-        print(self.node_id)
-        print('mi database')
-        print(self.database)
-        print('la otra')
-        proxy_test = self.connect_to('127.0.0.1', 6200, 'tracker')
-        print(proxy_test.get_database())
+                    successor_proxy.remove_key_from_database(pieces_sha256)
+            print(self.node_id)
+            print('mi database')
+            print(self.database)
+            print('la otra')
+            proxy_test = self.connect_to('127.0.0.1', 6200, 'tracker')
+            print(proxy_test.get_database())
     @Pyro4.expose
     def find_successor(self, key):
         if (key < self.node_id):
