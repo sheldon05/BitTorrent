@@ -41,6 +41,10 @@ class Tracker(object):
         return peers
 
     @Pyro4.expose
+    def get_node_id(self):
+        return self.node_id
+
+    @Pyro4.expose
     def get_database(self):
         return self.database
 
@@ -85,7 +89,7 @@ class Tracker(object):
             self.add_to_database(pieces_sha256, ip, port)
         else:
             tracker_ip, tracker_port = self.find_successor(pieces_sha256).split(':')
-            proxy_tracker = self.connect_to(tracker_ip, int(tracker_port, 'tracker'))
+            proxy_tracker = self.connect_to(tracker_ip, int(tracker_port), 'tracker')
             proxy_tracker.add_to_database(pieces_sha256, ip, port)
             
 
@@ -128,21 +132,21 @@ class Tracker(object):
         if (key < self.node_id):
             ip_next, port_next = self.get_predecessor().split(':')
             proxy_tracker = self.connect_to(ip_next, int(port_next), 'tracker')
-            while(key < proxy_tracker.node_id):
-                actual_node_id = proxy_tracker.node_id
+            while(key < proxy_tracker.get_node_id()):
+                actual_node_id = proxy_tracker.get_node_id()
                 ip_next, port_next = proxy_tracker.get_predecessor().split(':')
                 proxy_tracker = self.connect_to(ip_next, int(port_next), 'tracker')
-                if proxy_tracker.node_id > actual_node_id:
+                if proxy_tracker.get_node_id() > actual_node_id:
                     return proxy_tracker.get_succesor()
             return proxy_tracker.get_succesor()
         else:
             ip_next, port_next = self.get_successor().split(':')
             proxy_tracker = self.connect_to(ip_next, int(port_next), 'tracker')
-            while(key > proxy_tracker.node_id):
-                actual_node_id = proxy_tracker.node_id
+            while(key > proxy_tracker.get_node_id()):
+                actual_node_id = proxy_tracker.get_node_id()
                 ip_next, port_next = proxy_tracker.get_successor().split(':')
                 proxy_tracker = self.connect_to(ip_next, int(port_next), 'tracker')
-                if proxy_tracker.node_id < actual_node_id:
+                if proxy_tracker.get_node_id() < actual_node_id:
                     return proxy_tracker.get_ip_port()
             return proxy_tracker.get_ip_port()
             
