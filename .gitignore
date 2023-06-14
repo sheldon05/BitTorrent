@@ -10,3 +10,9 @@
 pyvenv.cfg
 .venv
 pip-selfcheck.json
+*.aux
+*.fdb_latexmk
+*.fls
+*.log
+*.gz
+*.tex
