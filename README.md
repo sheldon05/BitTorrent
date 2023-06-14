@@ -1,3 +1,3 @@
 # BitTorrent
 
-See docs in docs foleder
+See docs in docs folder
