@@ -2,95 +2,106 @@ import Pyro4
 import hashlib
 from threading import Timer
 from copy import copy
+from fastapi import FastAPI, Response, BackgroundTasks
+from fastapi.responses import JSONResponse
+from fastapi.encoders import jsonable_encoder
+from fastapi_utils.tasks import repeat_every
+from fastapi.middleware.cors import CORSMiddleware
+import uvicorn
+import requests
+import json
+
+
 
 def sha256_hash(s):
     return int(hashlib.sha256(s.encode()).hexdigest(), 16)
 
-class Tracker(object):
+fastapi = FastAPI()
+ip = ''
+port = ''
+node_id = ''
+successor = '' # 'IP:PORT'
+predecessor = '' # 'IP:PORT'
+# keys are the concatenation of sha1 hash of the pieces of the files, pieces key in .torrent
+# values ip and port of the peers that potentially have the piece  , list of tuples (ip,port)
+database = {}
 
-    def __init__(self, ip, port):
-        self.ip = ip
-        self.port = port
-        self.node_id = sha256_hash(self.ip + ':' + str(self.port))
-        self.successor = '' # 'IP:PORT'
-        self.predecessor = '' # 'IP:PORT'
-        # keys are the concatenation of sha1 hash of the pieces of the files, pieces key in .torrent
-        # values ip and port of the peers that potentially have the piece  , list of tuples (ip,port)
-        self.database = {}
+def set_ip_port(incoming_ip, incoming_port):
+    ip = incoming_ip
+    port = incoming_port
+    node_id = sha256_hash(self.ip + ':' + str(self.port))
 
+@fastapi.get("/get_peers")
+def get_peers(pieces_sha1):
+    pieces_sha256 = sha256_hash(pieces_sha1)
 
-    @Pyro4.expose
-    def get_peers(self, pieces_sha1):
-        pieces_sha256 = sha256_hash(pieces_sha1)
+    if successor != '':
+        owner_ip, owner_port = find_successor(pieces_sha256).split(':')
+        try:
+            peers = requests.get(f"http://{owner_ip}:{owner_port}/get_database").json()[pieces_sha256]
+        except KeyError:
+            print("Not exist the torrent file")
+            peers = []
+    else:
+        try:
+            peers = database[pieces_sha256]
+        except KeyError:
+            print("Not exist the torrent file")
+            peers = []
+    return peers
 
-        if self.successor != '':
-            owner_ip, owner_port = self.find_successor(pieces_sha256).split(':')
-            owner_proxy = self.connect_to(owner_ip, int(owner_port), 'tracker')
+@fastapi.get("/get_node_id")
+def get_node_id():
+    return node_id
 
-            try:
-                peers = owner_proxy.get_database()[pieces_sha256]
-            except KeyError:
-                print("Not exist the torrent file")
-                peers = []
-        else:
-            try:
-                peers = self.database[pieces_sha256]
-            except KeyError:
-                print("Not exist the torrent file")
-                peers = []
-        return peers
+@fastapi.get("/get_database")
+def get_database():
+    return database
 
-    @Pyro4.expose
-    def get_node_id(self):
-        return self.node_id
-
-    @Pyro4.expose
-    def get_database(self):
-        return self.database
-
-    @Pyro4.expose
-    def get_ip_port(self):
-        return f'{self.ip}:{str(self.port)}'    
+@fastapi.get("/get_ip_port")
+def get_ip_port():
+    return f'{ip}:{str(port)}'    
     
-    @Pyro4.expose
-    def get_predecessor(self):
-        return self.predecessor
+@fastapi.get("/get_predecessor")
+def get_predecessor():
+    return predecessor
 
-    @Pyro4.expose
-    def get_successor(self):
-        return self.successor
+@fastapi.get("/get_successor")
+def get_successor():
+    return successor
 
-    @Pyro4.expose
-    def add_to_database(self, pieces_sha256, ip, port):
-        print(type(pieces_sha256))
-        if pieces_sha256 in self.database.keys():
-            print("llegue aqui")
-            if not (ip,port) in self.database[pieces_sha256]:
-                self.database[pieces_sha256].append((ip, port))
+@fastapi.get("/add_to_database")
+def add_to_database(pieces_sha256, ip, port):
+    print(type(pieces_sha256))
+    if pieces_sha256 in database.keys():
+        print("llegue aqui")
+        if not (ip,port) in database[pieces_sha256]:
+            database[pieces_sha256].append((ip, port))
 
-        else:
-            print(f'annadi la pieza a la database de {self.port}')
-            self.database[pieces_sha256] = [(ip, port)]
+    else:
+        print(f'annadi la pieza a la database de {port}')
+        database[pieces_sha256] = [(ip, port)]
 
-    @Pyro4.expose
-    def remove_from_database(self, pieces_sha1, ip, port):
-        if pieces_sha1 in self.database.keys():
-            if not (ip,port) in self.database[pieces_sha1]:
-                self.database[pieces_sha1].remove((ip, port))
+@fastapi.get("/remove_from_database")
+def remove_from_database(pieces_sha1, ip, port):
+    if pieces_sha1 in database.keys():
+        if not (ip,port) in database[pieces_sha1]:
+            database[pieces_sha1].remove((ip, port))
 
-    @Pyro4.expose
-    def remove_key_from_database(self, key):
-        self.database.pop(key)
+@fastapi.get("/remove_key_from_database")
+def remove_key_from_database(key):
+    database.pop(key)
 
-    @Pyro4.expose
-    def add_to_trackers(self, pieces_sha1, ip, port):
-        pieces_sha256 = sha256_hash(pieces_sha1)
-        if self.successor == '':
-            self.add_to_database(pieces_sha256, ip, port)
-        else:
-            tracker_ip, tracker_port = self.find_successor(pieces_sha256).split(':')
-            proxy_tracker = self.connect_to(tracker_ip, int(tracker_port), 'tracker')
-            proxy_tracker.add_to_database(pieces_sha256, ip, port)
+@fastapi.put("/add_to_trackers") #Check this, use of post, put or get
+def add_to_trackers(pieces_sha1, ip, port):
+    pieces_sha256 = sha256_hash(pieces_sha1)
+    if successor == '':
+        add_to_database(pieces_sha256, ip, port)
+    else:
+        tracker_ip, tracker_port = find_successor(pieces_sha256).split(':')
+        requests.put()
+        proxy_tracker = self.connect_to(tracker_ip, int(tracker_port), 'tracker')
+        proxy_tracker.add_to_database(pieces_sha256, ip, port)
             
 
 
@@ -143,6 +154,7 @@ class Tracker(object):
             print('la otra')
             proxy_test = self.connect_to('127.0.0.1', 6200, 'tracker')
             print(proxy_test.get_database())
+            
     @Pyro4.expose
     def find_successor(self, key):
         if (key < self.node_id):
