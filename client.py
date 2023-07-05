@@ -78,6 +78,8 @@ def get_peers_from_tracker(torrent_info):
         #tracker_proxy = self.connect_to(tracker_ip, tracker_port, 'tracker')
         #TODO: Revisar en que formato se devuelven los peers
         peers_response = requests.get(f"http://{tracker_ip}:{tracker_port}/get_peers", params={"pieces_sha1":info.metainfo['info']['pieces']}).json()
+        print('estos son los peers que me llegaron')
+        print(peers_response)
         for peer in peers_response:
             peers.append(peer)
     return peers
@@ -94,7 +96,9 @@ def find_rarest_piece(peers, torrent_info : TorrentInfo, owned_pieces):
         #proxy = self.connect_to(ip, port, 'client')
         print('voy a hacer get_bit_field')
         #peer_bit_field = proxy.get_bit_field_of(dict(torrent_info.metainfo['info']))
-        peer_bit_field = requests.get(f"http://{ip}:{port}/get_bit_field_of", params={'info':torrent_info.metainfo['info']}).json()
+        print(f'Esto es metainfo: {torrent_info.metainfo}')
+        print(f"Esto es metainfo en info como dict: {dict(torrent_info.metainfo['info'])}")
+        peer_bit_field = requests.get(f"http://{ip}:{port}/get_bit_field_of", params={'info':dict(torrent_info.metainfo['info'])}).json()
         print('tengo el bitfield')
         print(peer_bit_field)
         for i in range(len(peer_bit_field)):
@@ -108,23 +112,18 @@ def find_rarest_piece(peers, torrent_info : TorrentInfo, owned_pieces):
     return rarest_piece, owners[rarest_piece]
 
 
-def dowload_piece_from_peer(self, peer, torrent_info : TorrentInfo, piece_index, piece_manager : PieceManager):
-    try:
-        proxy_peer = self.connect_to(peer[0], peer[1], 'client')
-    except:
-        logger.error("Connection failure")
-        return
+def dowload_piece_from_peer(peer, torrent_info : TorrentInfo, piece_index, piece_manager : PieceManager):
     piece_size = torrent_info.file_size % torrent_info.piece_size if piece_index == piece_manager.number_of_pieces - 1 else torrent_info.piece_size
     for i in range(int(math.ceil(float(piece_size) / DEFAULT_BLOCK_SIZE))):
         #received_block = proxy_peer.get_block_of_piece(dict(torrent_info.metainfo['info']), piece_index, i*DEFAULT_BLOCK_SIZE)
-        received_block = requests.get(f"http://{peer[0]}:{peer[1]}/get_block_of_piece", params={'info':torrent_info.metainfo['info'], 'piece_index':piece_index, 'block_offset': i*DEFAULT_BLOCK_SIZE}).json()
+        received_block = requests.get(f"http://{peer[0]}:{peer[1]}/get_block_of_piece", params={'info':dict(torrent_info.metainfo['info']), 'piece_index':piece_index, 'block_offset': i*DEFAULT_BLOCK_SIZE}).json()
         print('este es el bloque que me mandaron')
         print(received_block)
         raw_data = base64.b64decode(received_block['data']['data']) #TODO: No se si ahora esto es necesario
         piece_manager.receive_block_piece(piece_index, i*DEFAULT_BLOCK_SIZE, received_block['data'])
 
 
-def dowload_file(dottorrent_file_path, save_at = 'client_files'):
+def dowload_file(dottorrent_file_path, save_at = 'test'):
     '''
     Start dowload of a file from a local dottorrent file
     '''
@@ -134,9 +133,11 @@ def dowload_file(dottorrent_file_path, save_at = 'client_files'):
     piece_manager_inst = PieceManager(info.metainfo['info'], save_at)
         
     update_trackers(info.get_trackers(), info.dottorrent_pieces)
-        
+    print('Ya notifique al tracker que voy a descargar yo')
     while not piece_manager_inst.completed:
+        print('entre al while para descargar')
         rarest_piece, owners = find_rarest_piece(peers, info, piece_manager_inst.bitfield)
+        print(f'rarest piece:{rarest_piece}, owners{owners}')
         while len(owners)>0:
             print('tengo un owner')
             peer_for_download = owners[random.randint(0,len(owners)-1)]
@@ -154,13 +155,15 @@ def dowload_file(dottorrent_file_path, save_at = 'client_files'):
             
     #TODO: Check if the path must cointain /
 @fastapi.get("/get_bit_field_of")
-def get_bit_field_of(info):
+def get_bit_field_of(info: dict):
+    print(f"esto es info que me llego: {info}")
     piece_manager = PieceManager(info, 'client_files')
+    print(f"Este es el bitfield que voy a devolver: {piece_manager.bitfield}")
     return piece_manager.bitfield
 
     #TODO: Check if the path must cointain /
 @fastapi.get("/get_block_of_piece")
-def get_block_of_piece(info, piece_index, block_offset):
+def get_block_of_piece(info: dict, piece_index:int, block_offset:int):
     piece_manager = PieceManager(info, 'client_files')
     print('la pieza tiene estos bloques')
     print(piece_manager.pieces[piece_index].number_of_blocks)
@@ -178,6 +181,7 @@ if __name__ == '__main__':
     parser.add_argument('--ip', type=str, metavar='', help='Tu ip')
     parser.add_argument('--port', type=int, metavar='', help='Tu puerto')
     parser.add_argument('--archive', type=str, metavar='', help='Direccion del archivo')
+    parser.add_argument('--download', type=str, metavar='', help='Direccion del .torrent a descargar')
 
     # Procesa los argumentos de línea de comandos
     args = parser.parse_args()
@@ -185,10 +189,16 @@ if __name__ == '__main__':
     ip = args.ip
     port = args.port
 
+    actual_folder = os.getcwd()
+
     if args.archive != None:
-        actual_folder = os.getcwd()
+        
         file_path = os.path.join(actual_folder, 'client_files', args.archive)
         upload_file(file_path, ['127.0.0.1:6200'])
+
+    if args.download != None:
+        torrent_file_path = os.path.join(actual_folder, 'torrent_files', args.download)
+        dowload_file(torrent_file_path)
 
     run()
 

@@ -97,7 +97,7 @@ def remove_from_database(pieces_sha1, ip, port):
 
 
 @fastapi.delete("/remove_key_from_database")
-def remove_key_from_database(key):
+def remove_key_from_database(key): #TODO: Revisar el tipo que tengo que ponerle en la anotacion
     database.pop(key)
 
 
@@ -286,7 +286,7 @@ if __name__ == '__main__':
 
     ip = args.ip
     port = args.port
-    node_id = sha256_hash(self.ip + ':' + str(self.port))
+    node_id = sha256_hash(ip + ':' + str(port))
 
     uvicorn.run(fastapi, host=ip, port=port)
 

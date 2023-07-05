@@ -12,8 +12,8 @@ class PieceManager:
         '''
             Initialize the piece manager
         '''
-        info = dict(info)
-        print(info)
+        print(f"esto es info de piece manager: {info}")
+        #info = dict(info)
         self.file_size = info['length'] # The file size
         self.piece_size = info['piece length'] # The piece size
         self.filename = f"{save_at}/{info['name']}" # The file name
