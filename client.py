@@ -4,6 +4,7 @@ import math
 import random
 import serpent
 import base64
+import hashlib
 from fastapi import FastAPI, Response, BackgroundTasks
 from fastapi.responses import JSONResponse
 from fastapi.encoders import jsonable_encoder
@@ -98,7 +99,9 @@ def find_rarest_piece(peers, torrent_info : TorrentInfo, owned_pieces):
         #peer_bit_field = proxy.get_bit_field_of(dict(torrent_info.metainfo['info']))
         print(f'Esto es metainfo: {torrent_info.metainfo}')
         print(f"Esto es metainfo en info como dict: {dict(torrent_info.metainfo['info'])}")
-        peer_bit_field = requests.get(f"http://{ip}:{port}/get_bit_field_of", params={'info':dict(torrent_info.metainfo['info'])}).json()
+        info = dict(torrent_info.metainfo['info'])
+        info['md5sum'] = hashlib.md5(info['md5sum']).hexdigest() 
+        peer_bit_field = requests.get(f"http://{ip}:{port}/get_bit_field_of", json=info).json()
         print('tengo el bitfield')
         print(peer_bit_field)
         for i in range(len(peer_bit_field)):
@@ -116,11 +119,15 @@ def dowload_piece_from_peer(peer, torrent_info : TorrentInfo, piece_index, piece
     piece_size = torrent_info.file_size % torrent_info.piece_size if piece_index == piece_manager.number_of_pieces - 1 else torrent_info.piece_size
     for i in range(int(math.ceil(float(piece_size) / DEFAULT_BLOCK_SIZE))):
         #received_block = proxy_peer.get_block_of_piece(dict(torrent_info.metainfo['info']), piece_index, i*DEFAULT_BLOCK_SIZE)
-        received_block = requests.get(f"http://{peer[0]}:{peer[1]}/get_block_of_piece", params={'info':dict(torrent_info.metainfo['info']), 'piece_index':piece_index, 'block_offset': i*DEFAULT_BLOCK_SIZE}).json()
+        info = dict(torrent_info.metainfo['info'])
+        info['md5sum'] = hashlib.md5(info['md5sum']).hexdigest()
+        received_block = requests.get(f"http://{peer[0]}:{peer[1]}/get_block_of_piece", params={'piece_index':piece_index, 'block_offset': i*DEFAULT_BLOCK_SIZE}, json=info).json()
         print('este es el bloque que me mandaron')
         print(received_block)
-        raw_data = base64.b64decode(received_block['data']['data']) #TODO: No se si ahora esto es necesario
-        piece_manager.receive_block_piece(piece_index, i*DEFAULT_BLOCK_SIZE, received_block['data'])
+        #received_block['data'] = received_block['data'].encode('utf-8')
+        print(f'Este es el data del bloque que recibi: {received_block}')
+        #raw_data = base64.b64decode(received_block['data']['data']) #TODO: No se si ahora esto es necesario
+        piece_manager.receive_block_piece(piece_index, i*DEFAULT_BLOCK_SIZE, received_block.encode('utf-8'))
 
 
 def dowload_file(dottorrent_file_path, save_at = 'test'):
@@ -164,12 +171,14 @@ def get_bit_field_of(info: dict):
     #TODO: Check if the path must cointain /
 @fastapi.get("/get_block_of_piece")
 def get_block_of_piece(info: dict, piece_index:int, block_offset:int):
+    print(f'Este es el info que me llego a get_block_of_piece: {info}')
     piece_manager = PieceManager(info, 'client_files')
     print('la pieza tiene estos bloques')
     print(piece_manager.pieces[piece_index].number_of_blocks)
     print(piece_manager.get_block_piece(piece_index, block_offset).data)
     block = piece_manager.get_block_piece(piece_index, block_offset)
-    return BlockSchema(data=block.data, block_size=block.block_size, state=block.state)
+    #block_response = {'data': block.data.decode('utf-8'), 'block_size': block.block_size, 'state': block.state}
+    return block.data
     
 
 
