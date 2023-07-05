@@ -76,7 +76,7 @@ def get_successor():
     return successor
 
 
-@fastapi.get("/add_to_database")
+@fastapi.put("/add_to_database")
 def add_to_database(pieces_sha256, ip, port):
     print(type(pieces_sha256))
     if pieces_sha256 in database.keys():
@@ -108,9 +108,9 @@ def add_to_trackers(pieces_sha1, ip, port):
         add_to_database(pieces_sha256, ip, port)
     else:
         tracker_ip, tracker_port = find_successor(pieces_sha256).split(':')
-        requests.put()
-        proxy_tracker = self.connect_to(tracker_ip, int(tracker_port), 'tracker')
-        proxy_tracker.add_to_database(pieces_sha256, ip, port)
+        requests.put(f"http://{tracker_ip}:{tracker_port}/add_to_database", params={'pieces_sha256':pieces_sha256, 'ip':ip, 'port':port})
+        # proxy_tracker = self.connect_to(tracker_ip, int(tracker_port), 'tracker')
+        # proxy_tracker.add_to_database(pieces_sha256, ip, port)
             
 
 def distribute_information(self):
@@ -287,6 +287,8 @@ if __name__ == '__main__':
     ip = args.ip
     port = args.port
     node_id = sha256_hash(self.ip + ':' + str(self.port))
+
+    uvicorn.run(fastapi, host=ip, port=port)
 
 
 # tracker = Tracker("127.0.0.1", 6200)

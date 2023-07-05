@@ -25,8 +25,8 @@ actual_path = os.getcwd()
 fastapi = FastAPI()
 
 
-ip = ip 
-port = port
+ip = '' 
+port = ''
 
 
 #TODO:Put more trackers on .torrent 
@@ -154,13 +154,13 @@ def dowload_file(dottorrent_file_path, save_at = 'client_files'):
             
     #TODO: Check if the path must cointain /
 @fastapi.get("/get_bit_field_of")
-def get_bit_field_of(self, info):
+def get_bit_field_of(info):
     piece_manager = PieceManager(info, 'client_files')
     return piece_manager.bitfield
 
     #TODO: Check if the path must cointain /
 @fastapi.get("/get_block_of_piece")
-def get_block_of_piece(self, info, piece_index, block_offset):
+def get_block_of_piece(info, piece_index, block_offset):
     piece_manager = PieceManager(info, 'client_files')
     print('la pieza tiene estos bloques')
     print(piece_manager.pieces[piece_index].number_of_blocks)
@@ -189,5 +189,7 @@ if __name__ == '__main__':
         actual_folder = os.getcwd()
         file_path = os.path.join(actual_folder, 'client_files', args.archive)
         upload_file(file_path, ['127.0.0.1:6200'])
+
+    run()
 
     
