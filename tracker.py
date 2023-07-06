@@ -299,6 +299,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--ip', type=str, metavar='', help='Tu ip')
     parser.add_argument('--port', type=int, metavar='', help='Tu puerto')
+    parser.add_argument('--join', type=str, metavar='', help='ip:port de la puerta de entrada al chord')
 
     # Procesa los argumentos de línea de comandos
     args = parser.parse_args()
@@ -306,6 +307,10 @@ if __name__ == '__main__':
     ip = args.ip
     port = args.port
     node_id = sha256_hash(ip + ':' + str(port))
+
+    if args.join != None:
+        node_ip, node_port = args.join.split(':')
+        join(node_ip, node_port)
 
     uvicorn.run(fastapi, host=ip, port=port)
 
