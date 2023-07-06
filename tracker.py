@@ -111,64 +111,12 @@ def add_to_trackers(pieces_sha1, ip, port):
         requests.put(f"http://{tracker_ip}:{tracker_port}/add_to_database", params={'pieces_sha256':pieces_sha256, 'ip':ip, 'port':port})
         # proxy_tracker = self.connect_to(tracker_ip, int(tracker_port), 'tracker')
         # proxy_tracker.add_to_database(pieces_sha256, ip, port)
-            
 
-def distribute_information(self):
-    print('voy a distribuir la info')
-    for pieces_sha256, peers in self.database.items():
-        owner_ip, owner_port = self.find_successor(pieces_sha256).split(':')
-        owner_proxy = self.connect_to(owner_ip, int(owner_port), 'tracker')
 
-        if owner_proxy.get_node_id() == self.node_id:
-            continue
-
-        for ip, port in peers:
-            owner_proxy.add_to_database(pieces_sha256, ip, port)
-
-        self.database.pop(pieces_sha256)
-
-    successor_ip, successor_port = self.successor.split(':')
-    predecessor_ip, predecessor_port = self.predecessor.split(':')
-    
-    successor_proxy = self.connect_to(successor_ip, int(successor_port), 'tracker')
-    predecessor_proxy = self.connect_to(predecessor_ip, int(predecessor_port), 'tracker')
-    
-    if successor_proxy.get_node_id() < self.node_id:
-        for pieces_sha256, peers in successor_proxy.get_database().items():
-            if pieces_sha256 <= self.node_id and pieces_sha256 > successor_proxy.get_node_id():
-                for ip, port in peers:
-                    self.add_to_database(pieces_sha256, ip, port)
-                    
-    elif predecessor_proxy.get_node_id() > self.node_id:
-        for pieces_sha256, peers in successor_proxy.get_database().items():
-            if pieces_sha256 <= self.node_id or pieces_sha256 > successor_proxy.get_node_id():
-                for ip, port in peers:
-                    self.add_to_database(pieces_sha256, ip, port)
-    else:
-        print('voy a entrar al for')
-        print(successor_proxy.get_database())
-        for pieces_sha256, peers in successor_proxy.get_database().items():
-            print(f'estoy revisando la pieza {pieces_sha256}')
-            if pieces_sha256 <= self.node_id or (self.node_id<sha256_hash(successor_proxy.get_ip_port()) and pieces_sha256>sha256_hash(successor_proxy.get_ip_port()) and successor_proxy.get_successor()==self.get_ip_port()):
-                print(f'la tenia que copiar para mi')
-                for ip, port in peers:
-                    print('voy a annadirla')
-                    self.add_to_database(pieces_sha256, ip, port)
-
-                successor_proxy.remove_key_from_database(pieces_sha256)
-        print(self.node_id)
-        print('mi database')
-        print(self.database)
-        print('la otra')
-        proxy_test = self.connect_to('127.0.0.1', 6200, 'tracker')
-        print(proxy_test.get_database())
-            
-
-# TODO: Probar este metodo.
-@fastapi.get("/find_succesor")
+@fastapi.get("/find_successor")
 def find_successor(key:int):
-    if (key < self.node_id):
-        ip_port_next = self.get_predecessor()
+    if (key < node_id):
+        ip_port_next = predecessor
         ip_next, port_next = ip_port_next.split(':')
         node_id = requests.get(f"http://{ip_next}:{port_next}/get_node_id").json()
         #proxy_tracker = self.connect_to(ip_next, int(port_next), 'tracker')
@@ -186,7 +134,7 @@ def find_successor(key:int):
         return requests.get(f"http://{ip_next}:{port_next}/get_successor").json()
 
     else:
-        ip_port_next = self.get_successor()
+        ip_port_next = successor
         ip_next, port_next = ip_port_next.split(':')
         node_id = requests.get(f"http://{ip_next}:{port_next}/get_node_id").json()
         #proxy_tracker = self.connect_to(ip_next, int(port_next), 'tracker')
@@ -201,29 +149,100 @@ def find_successor(key:int):
         
         ip_next, port_next = ip_port_next.split(':')
         return requests.get(f"http://{ip_next}:{port_next}/get_ip_port").json()
+
+
+def distribute_information():
+    print('voy a distribuir la info')
+    for pieces_sha256, peers in database.items():
+        owner_ip, owner_port = find_successor(pieces_sha256).split(':')
+        #owner_proxy = self.connect_to(owner_ip, int(owner_port), 'tracker')
+        owner_id = requests.get(f"http://{owner_ip}:{owner_port}/get_node_id").json()
+
+        if int(owner_id) == node_id:
+            continue
+
+        for ip, port in peers:
+            #owner_proxy.add_to_database(pieces_sha256, ip, port)
+            requests.put(f"http://{ip}:{port}/add_to_database", params={'pieces_sha256':pieces_sha256, 'ip':ip, 'port':port})
+
+        database.pop(pieces_sha256)
+
+    successor_ip, successor_port = successor.split(':')
+    predecessor_ip, predecessor_port = predecessor.split(':')
+    
+    #successor_proxy = self.connect_to(successor_ip, int(successor_port), 'tracker')
+    #predecessor_proxy = self.connect_to(predecessor_ip, int(predecessor_port), 'tracker')
+
+    succ_id = requests.get(f"http://{successor_ip}:{successor_port}/get_node_id").json()
+    pred_id = requests.get(f"http://{predecessor_ip}:{predecessor_port}/get_node_id").json()
+    
+    if int(succ_id) < node_id:
+        succ_database = requests.get(f"http://{successor_ip}:{successor_port}/get_database").json()
+        for pieces_sha256, peers in succ_database.items():
+            if pieces_sha256 <= node_id and pieces_sha256 > int(succ_id): #TODO: Este pieces_sha256 es un entero?
+                for ip, port in peers:
+                    add_to_database(pieces_sha256, ip, port)
+                    
+    elif int(pred_id) > node_id:
+        succ_database = requests.get(f"http://{successor_ip}:{successor_port}/get_database").json()
+        for pieces_sha256, peers in succ_database.items():
+            if pieces_sha256 <= node_id or pieces_sha256 > int(succ_id):
+                for ip, port in peers:
+                    add_to_database(pieces_sha256, ip, port)
+    else:
+        print('voy a entrar al for')
+        succ_database = requests.get(f"http://{successor_ip}:{successor_port}/get_database").json()
+        print(succ_database)
+        succ_succesor = requests.get(f"http://{successor_ip}:{successor_port}/get_successor").json()
+
+        for pieces_sha256, peers in succ_database.items():
+            print(f'estoy revisando la pieza {pieces_sha256}')
+            if pieces_sha256 <= node_id or (node_id<sha256_hash(successor) and pieces_sha256>sha256_hash(successor) and succ_succesor==get_ip_port()):
+                print(f'la tenia que copiar para mi')
+                for ip, port in peers:
+                    print('voy a annadirla')
+                    add_to_database(pieces_sha256, ip, port)
+
+                #successor_proxy.remove_key_from_database(pieces_sha256)
+                requests.delete(f"http://{successor_ip}:{successor_port}/remove_key_from_database", params={'key':pieces_sha256})
+
+        print(node_id)
+        print('mi database')
+        print(database)
+        print('la otra')
+        #proxy_test = self.connect_to('127.0.0.1', 6200, 'tracker') #TODO: Que es esto
+        #print(proxy_test.get_database())
             
 
-def join(self, ip, port):
-    proxy_tracker = self.connect_to(ip, port, 'tracker')
-    if proxy_tracker.get_successor() == '':
-        self.successor = proxy_tracker.get_ip_port()
-        self.predecessor = proxy_tracker.get_ip_port()
-        proxy_tracker.set_successor(self.get_ip_port())
-        proxy_tracker.set_predecessor(self.get_ip_port())
-    else:
-        succesor = proxy_tracker.find_successor(self.node_id)
-        self.successor = succesor
-        suc_ip, suc_port = succesor.split(':') 
-        proxy_tracker = self.connect_to(suc_ip, int(suc_port))
-        self.predecessor = proxy_tracker.get_predecessor()
-        proxy_tracker.set_predecessor(self.get_ip_port)
-        pre_ip, pre_port = self.predecessor.split(':')
-        proxy_tracker = self.connect_to(pre_ip, int(pre_port))
-        proxy_tracker.set_successor(self.get_ip_port)
-    self.distribute_information()
-        
-        
+# TODO: Probar este metodo.
 
+            
+
+def join(ip, port):
+    global successor
+    global predecessor
+    # proxy_tracker = self.connect_to(ip, port, 'tracker')
+    succ_of_entry = requests.get(f"http://{ip}:{port}/get_successor").json()
+    if succ_of_entry == '':
+        successor = requests.get(f"http://{ip}:{port}/get_ip_port").json()
+        predecessor = requests.get(f"http://{ip}:{port}/get_ip_port").json()
+        requests.put(f"http://{ip}:{port}/set_successor", params={'node': get_ip_port()})
+        requests.put(f"http://{ip}:{port}/set_predecessor", params={'node': get_ip_port()})
+        # proxy_tracker.set_successor(self.get_ip_port())
+        # proxy_tracker.set_predecessor(self.get_ip_port())
+    else:
+        successor = requests.get(f"http://{ip}:{port}/find_successor", params={'key': node_id}).json()
+        suc_ip, suc_port = successor.split(':') 
+        #proxy_tracker = self.connect_to(suc_ip, int(suc_port))
+        predecessor = requests.get(f"http://{suc_ip}:{suc_port}/get_predecessor").json()
+        requests.put(f"http://{suc_ip}:{suc_port}/set_predecessor", params={'node': get_ip_port()})
+        #proxy_tracker.set_predecessor(self.get_ip_port)
+        pre_ip, pre_port = predecessor.split(':')
+        requests.put(f"http://{pre_ip}:{pre_port}/set_successor", params={'node': get_ip_port()})
+        # proxy_tracker = self.connect_to(pre_ip, int(pre_port))
+        # proxy_tracker.set_successor(self.get_ip_port)
+    distribute_information()
+        
 
 def leave(self):
     successor = self.find_succesor(self.node_id)
@@ -245,14 +264,14 @@ def leave(self):
     self.sucessor = ""
 
 
-@Pyro4.expose
-def set_successor(self,node):
-    self.successor = node
+@fastapi.put("/set_successor")
+def set_successor(node:str):
+    successor = node
 
 
-@Pyro4.expose
-def set_predecessor(self, node):
-    self.predecessor = node
+@fastapi.put("/set_predecessor")
+def set_predecessor(node:str):
+    predecessor = node
             
 @Pyro4.expose
 def dummy_response(self):
