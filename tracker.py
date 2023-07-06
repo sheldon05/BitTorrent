@@ -77,7 +77,7 @@ def get_successor():
 
 
 @fastapi.put("/add_to_database")
-def add_to_database(pieces_sha256, ip, port):
+def add_to_database(pieces_sha256:int, ip, port):
     print(type(pieces_sha256))
     if pieces_sha256 in database.keys():
         print("llegue aqui")
@@ -91,13 +91,14 @@ def add_to_database(pieces_sha256, ip, port):
 
 @fastapi.delete("/remove_from_database")
 def remove_from_database(pieces_sha1, ip, port):
+    pieces_sha256 = sha256_hash(pieces_sha1)
     if pieces_sha1 in database.keys():
         if not (ip,port) in database[pieces_sha1]:
             database[pieces_sha1].remove((ip, port))
 
 
 @fastapi.delete("/remove_key_from_database")
-def remove_key_from_database(key): #TODO: Revisar el tipo que tengo que ponerle en la anotacion
+def remove_key_from_database(key:int): #TODO: Revisar el tipo que tengo que ponerle en la anotacion
     database.pop(key)
 
 
@@ -179,16 +180,16 @@ def distribute_information():
     if int(succ_id) < node_id:
         succ_database = requests.get(f"http://{successor_ip}:{successor_port}/get_database").json()
         for pieces_sha256, peers in succ_database.items():
-            if pieces_sha256 <= node_id and pieces_sha256 > int(succ_id): #TODO: Este pieces_sha256 es un entero?
+            if int(pieces_sha256) <= node_id and int(pieces_sha256) > int(succ_id): #TODO: Este pieces_sha256 es un entero?
                 for ip, port in peers:
-                    add_to_database(pieces_sha256, ip, port)
+                    add_to_database(int(pieces_sha256), ip, port)
                     
     elif int(pred_id) > node_id:
         succ_database = requests.get(f"http://{successor_ip}:{successor_port}/get_database").json()
         for pieces_sha256, peers in succ_database.items():
-            if pieces_sha256 <= node_id or pieces_sha256 > int(succ_id):
+            if int(pieces_sha256) <= node_id or int(pieces_sha256) > int(succ_id): #Aqui si lo tengo que convertir xq el numero grandisimo del hash fastapi lo pasa como string
                 for ip, port in peers:
-                    add_to_database(pieces_sha256, ip, port)
+                    add_to_database(int(pieces_sha256), ip, port)
     else:
         print('voy a entrar al for')
         succ_database = requests.get(f"http://{successor_ip}:{successor_port}/get_database").json()
@@ -197,14 +198,14 @@ def distribute_information():
 
         for pieces_sha256, peers in succ_database.items():
             print(f'estoy revisando la pieza {pieces_sha256}')
-            if pieces_sha256 <= node_id or (node_id<sha256_hash(successor) and pieces_sha256>sha256_hash(successor) and succ_succesor==get_ip_port()):
+            if int(pieces_sha256) <= node_id or (node_id<sha256_hash(successor) and int(pieces_sha256)>sha256_hash(successor) and succ_succesor==get_ip_port()):
                 print(f'la tenia que copiar para mi')
                 for ip, port in peers:
                     print('voy a annadirla')
-                    add_to_database(pieces_sha256, ip, port)
+                    add_to_database(int(pieces_sha256), ip, port)
 
                 #successor_proxy.remove_key_from_database(pieces_sha256)
-                requests.delete(f"http://{successor_ip}:{successor_port}/remove_key_from_database", params={'key':pieces_sha256})
+                requests.delete(f"http://{successor_ip}:{successor_port}/remove_key_from_database", params={'key':int(pieces_sha256)})
 
         print(node_id)
         print('mi database')
