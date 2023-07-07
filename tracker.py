@@ -102,7 +102,10 @@ def check_chord_connection():
 
     print(f'Predecessor: {predecessor}')
     print(f'Predecessor predecessor: {pred_predecessor}')
-
+    print(f'Esta es mi database: {database}')
+    print(f'Esta es mi replication_database: {replication_database}')
+    
+    
     if predecessor != '':
         pred_ip, pred_port = predecessor.split(':')
         ping = requests.get(f'http://{pred_ip}:{pred_port}/ping').json()
