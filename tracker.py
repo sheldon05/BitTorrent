@@ -394,11 +394,14 @@ def distribute_information():
 def join(ip, port):
     global successor
     global predecessor
+    global pred_predecessor
+    
     # proxy_tracker = self.connect_to(ip, port, 'tracker')
     succ_of_entry = requests.get(f"http://{ip}:{port}/get_successor").json()
     if succ_of_entry == '':
         successor = requests.get(f"http://{ip}:{port}/get_ip_port").json()
         predecessor = requests.get(f"http://{ip}:{port}/get_ip_port").json()
+        pred_predecessor = get_ip_port()
         requests.put(f"http://{ip}:{port}/set_successor", params={'node': get_ip_port()})
         requests.put(f"http://{ip}:{port}/set_predecessor", params={'node': get_ip_port()})
         # proxy_tracker.set_successor(self.get_ip_port())
@@ -412,6 +415,7 @@ def join(ip, port):
         #proxy_tracker.set_predecessor(self.get_ip_port)
         pre_ip, pre_port = predecessor.split(':')
         requests.put(f"http://{pre_ip}:{pre_port}/set_successor", params={'node': get_ip_port()})
+        pred_predecessor = requests.get(f"http://{pre_ip}:{pre_port}/get_predecessor").json()
         # proxy_tracker = self.connect_to(pre_ip, int(pre_port))
         # proxy_tracker.set_successor(self.get_ip_port)
     distribute_information()
