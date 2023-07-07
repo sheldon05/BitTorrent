@@ -419,7 +419,7 @@ def join(ip, port):
         requests.put(f"http://{pre_ip}:{pre_port}/set_successor", params={'node': get_ip_port()})
         pred_predecessor = requests.get(f"http://{pre_ip}:{pre_port}/get_predecessor").json()
         succ_succesor = requests.get(f"http://{suc_ip}:{suc_port}/get_succesor").json()
-        succ_succesor_ip, succ_succesor_port = succ_succesor-split(':')
+        succ_succesor_ip, succ_succesor_port = succ_succesor.split(':')
         requests.put(f"http://{succ_succesor_ip}:{succ_succesor_port}/set_pred_predecessor", params={'node': get_ip_port()})
         # proxy_tracker = self.connect_to(pre_ip, int(pre_port))
         # proxy_tracker.set_successor(self.get_ip_port)
