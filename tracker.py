@@ -58,7 +58,7 @@ def fix_connection():
 
     print('INFO: Fixing Chord Connections')
 
-    #TODO: Metodo del Kuko para volver a distribuir la informacion
+    stabilize_databases()
     pred_pred_ip, pred_pred_port = pred_predecessor.split(':')
 
     pred_pred_id = requests.get(f'http://{pred_pred_ip}:{pred_pred_port}/get_node_id').json()
@@ -78,6 +78,21 @@ def fix_connection():
 
 
 
+
+
+def stabilize_databases():
+    global pred_predecessor
+    pred_predecessor_ip, pred_predecessor_port = pred_predecessor.split(':')
+    pred_predecessor_replication_database = requests.get(f"http://{pred_predecessor_ip}:{pred_predecessor_port}/get_replication_database").json()
+    for pieces_sha256, peers in pred_predecessor_replication_database.items():
+        for ip, port in peers:
+            add_to_database(int(pieces_sha256), ip, port)
+    
+    requests.delete(f"http://{pred_predecessor_ip}:{pred_predecessor_port}/clean_replication_database")
+    for pieces_sha256, peers in database.items():
+        for ip, port in peers:
+            requests.put(f"http://{pred_predecessor_ip}:{pred_predecessor_port}/add_to_replication_database", params={'pieces_sha256':pieces_sha256, 'ip':ip, 'port':port})
+    
 
 @fastapi.on_event('startup')
 @repeat_every(seconds=10)
@@ -144,6 +159,9 @@ def get_node_id():
 def get_database():
     return database
 
+@fastapi.get("/get_replication_database")
+def get_replication_database():
+    return replication_database
 
 @fastapi.get("/get_ip_port")
 def get_ip_port():
@@ -357,7 +375,6 @@ def distribute_information():
     requests.delete(f"http://{predecessor_ip}:{predecessor_port}/clean_replication_database")
     for pieces_sha256, peers in database.items():
         for ip, port in peers:
-            #owner_proxy.add_to_database(pieces_sha256, ip, port)
             requests.put(f"http://{predecessor_ip}:{predecessor_port}/add_to_replication_database", params={'pieces_sha256':pieces_sha256, 'ip':ip, 'port':port})
     
     
