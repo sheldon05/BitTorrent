@@ -394,13 +394,17 @@ def distribute_information():
 def join(ip, port):
     global successor
     global predecessor
+    global pred_predecessor
+    
     # proxy_tracker = self.connect_to(ip, port, 'tracker')
     succ_of_entry = requests.get(f"http://{ip}:{port}/get_successor").json()
     if succ_of_entry == '':
         successor = requests.get(f"http://{ip}:{port}/get_ip_port").json()
         predecessor = requests.get(f"http://{ip}:{port}/get_ip_port").json()
+        pred_predecessor = get_ip_port()
         requests.put(f"http://{ip}:{port}/set_successor", params={'node': get_ip_port()})
         requests.put(f"http://{ip}:{port}/set_predecessor", params={'node': get_ip_port()})
+        requests.put(f"http://{ip}:{port}/set_pred_predecessor", params={'node': predecessor})
         # proxy_tracker.set_successor(self.get_ip_port())
         # proxy_tracker.set_predecessor(self.get_ip_port())
     else:
@@ -409,9 +413,14 @@ def join(ip, port):
         #proxy_tracker = self.connect_to(suc_ip, int(suc_port))
         predecessor = requests.get(f"http://{suc_ip}:{suc_port}/get_predecessor").json()
         requests.put(f"http://{suc_ip}:{suc_port}/set_predecessor", params={'node': get_ip_port()})
+        requests.put(f"http://{suc_ip}:{suc_port}/set_pred_predecessor", params={'node': predecessor})
         #proxy_tracker.set_predecessor(self.get_ip_port)
         pre_ip, pre_port = predecessor.split(':')
         requests.put(f"http://{pre_ip}:{pre_port}/set_successor", params={'node': get_ip_port()})
+        pred_predecessor = requests.get(f"http://{pre_ip}:{pre_port}/get_predecessor").json()
+        succ_succesor = requests.get(f"http://{suc_ip}:{suc_port}/get_succesor").json()
+        succ_succesor_ip, succ_succesor_port = succ_succesor-split(':')
+        requests.put(f"http://{succ_succesor_ip}:{succ_succesor_port}/set_pred_predecessor", params={'node': get_ip_port()})
         # proxy_tracker = self.connect_to(pre_ip, int(pre_port))
         # proxy_tracker.set_successor(self.get_ip_port)
     distribute_information()
@@ -448,6 +457,11 @@ def set_predecessor(node:str):
     global predecessor
     predecessor = node
             
+@fastapi.put("/set_pred_predecessor")
+def set_pred_predecessor(node:str):
+    global pred_predecessor
+    pred_predecessor = node  
+
 @Pyro4.expose
 def dummy_response(self):
     return "DUMMY RESPONSE"
