@@ -12,6 +12,7 @@ import requests
 import json
 
 
+
 def sha256_hash(s):
     return int(hashlib.sha256(s.encode()).hexdigest(), 16)
 
@@ -145,7 +146,11 @@ def get_successor():
 
 @fastapi.put("/add_to_database")
 def add_to_database(pieces_sha256:int, ip, port):
+    global predecessor
     print(type(pieces_sha256))
+    if predecessor != '':
+        pred_ip, pred_port = predecessor.split(':')
+        requests.put(f"http://{pred_ip}:{pred_port}/add_to_replication_database", params={'pieces_sha256':pieces_sha256, 'ip':ip, 'port':port})
     if pieces_sha256 in database.keys():
         print("llegue aqui")
         if not (ip,port) in database[pieces_sha256]:
@@ -155,6 +160,22 @@ def add_to_database(pieces_sha256:int, ip, port):
         print(f'annadi la pieza a la database de {port}')
         database[pieces_sha256] = [(ip, port)]
 
+@fastapi.put("/add_to_replication_database")
+def add_to_replication_database(pieces_sha256:int, ip, port):
+    print(type(pieces_sha256))
+    if pieces_sha256 in replication_database.keys():
+        print("llegue aqui")
+        if not (ip,port) in replication_database[pieces_sha256]:
+            replication_database[pieces_sha256].append((ip, port))
+
+    else:
+        print(f'annadi la pieza a la database de {port}')
+        replication_database[pieces_sha256] = [(ip, port)]
+
+@fastapi.delete("/clean_replication_database")
+def clean_replication_database():
+    global replication_database
+    replication_database.clear()
 
 @fastapi.delete("/remove_from_database")
 def remove_from_database(pieces_sha1, ip, port):
@@ -240,7 +261,7 @@ def distribute_information():
 
         for ip, port in peers:
             #owner_proxy.add_to_database(pieces_sha256, ip, port)
-            requests.put(f"http://{ip}:{port}/add_to_database", params={'pieces_sha256':pieces_sha256, 'ip':ip, 'port':port})
+            requests.put(f"http://{owner_ip}:{owner_port}/add_to_database", params={'pieces_sha256':pieces_sha256, 'ip':ip, 'port':port})
 
         database.pop(pieces_sha256)
 
@@ -315,7 +336,20 @@ def distribute_information():
         print(requests.get(f"http://{'127.0.0.1'}:{'6203'}/get_database").json())
         #proxy_test = self.connect_to('127.0.0.1', 6200, 'tracker') #TODO: Que es esto
         #print(proxy_test.get_database())
-            
+    
+    #updating replication_databases
+    requests.delete(f"http://{predecessor_ip}:{predecessor_port}/clean_replication_database")
+    for pieces_sha256, peers in database.items():
+        for ip, port in peers:
+            #owner_proxy.add_to_database(pieces_sha256, ip, port)
+            requests.put(f"http://{predecessor_ip}:{predecessor_port}/add_to_replication_database", params={'pieces_sha256':pieces_sha256, 'ip':ip, 'port':port})
+    
+    
+    clean_replication_database()
+    succ_database = requests.get(f"http://{successor_ip}:{successor_port}/get_database").json()
+    for pieces_sha256, peers in succ_database.items():
+        for ip, port in peers:
+            add_to_replication_database(int(pieces_sha256), ip, port)
 
 # TODO: Probar este metodo.
 
@@ -346,7 +380,7 @@ def join(ip, port):
         # proxy_tracker.set_successor(self.get_ip_port)
     distribute_information()
         
-
+#TODO: Fix this method
 def leave(self):
     successor = self.find_succesor(self.node_id)
     #connect to succesor
