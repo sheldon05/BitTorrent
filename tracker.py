@@ -50,6 +50,52 @@ def active():
   return True
 
 
+def fix_connection():
+    global predecessor
+    global pred_predecessor
+
+    print('INFO: Fixing Chord Connections')
+
+    #TODO: Metodo del Kuko para volver a distribuir la informacion
+    pred_pred_ip, pred_pred_port = pred_predecessor.split(':')
+
+    predecessor = pred_predecessor
+    requests.put(f"http://{pred_pred_ip}:{pred_pred_port}/set_successor", params={'node': get_ip_port()})
+
+    pred_predecessor = requests.get(f"http://{pred_pred_ip}:{pred_pred_port}/get_predecessor").json()
+
+
+
+
+@fastapi.on_event('startup')
+@repeat_every(seconds=10)
+def check_chord_connection():
+    global predecessor
+    global pred_predecessor
+
+    if predecessor != '':
+        pred_ip, pred_port = predecessor.split(':')
+        ping = requests.get(f'http://{pred_ip}:{pred_port}/ping').json()
+
+        if ping != '200':
+            print('INFO: Ping with predecessor fail')
+            pred_pred_ip, pred_pred_port = pred_predecessor.split(':')
+            ping = requests.get(f'http://{pred_pred_ip}:{pred_pred_port}/ping').json()
+
+            if ping != '200':
+                print('INFO: Predeccessor predeccessor ping failed. Chord Ring Incosisteng')
+                predecessor = ''
+                pred_predecessor = ''
+
+            else:
+                print('INFO: Predeccessor predecessor ping succefully')
+                fix_connection()
+
+        else:
+            print('INFO: Ping with predecessor succefully')
+
+
+
 @fastapi.get("/get_peers")
 def get_peers(pieces_sha1):
     pieces_sha256 = sha256_hash(pieces_sha1)
