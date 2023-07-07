@@ -111,7 +111,7 @@ def find_rarest_piece(peers, torrent_info : TorrentInfo, owned_pieces):
         rarest_piece = count_of_pieces.index(min(count_of_pieces))
         while(owned_pieces[rarest_piece]):
             count_of_pieces[rarest_piece] = math.inf
-            rarest_piece = count_of_pieces.index(min(count_of_pieces, lambda x:x))
+            rarest_piece = count_of_pieces.index(min(count_of_pieces))
     return rarest_piece, owners[rarest_piece]
 
 
@@ -123,9 +123,9 @@ def dowload_piece_from_peer(peer, torrent_info : TorrentInfo, piece_index, piece
         info['md5sum'] = hashlib.md5(info['md5sum']).hexdigest()
         received_block = requests.get(f"http://{peer[0]}:{peer[1]}/get_block_of_piece", params={'piece_index':piece_index, 'block_offset': i*DEFAULT_BLOCK_SIZE}, json=info).json()
         print('este es el bloque que me mandaron')
-        print(received_block)
+        #print(received_block)
         #received_block['data'] = received_block['data'].encode('utf-8')
-        print(f'Este es el data del bloque que recibi: {received_block}')
+        #print(f'Este es el data del bloque que recibi: {received_block}')
         #raw_data = base64.b64decode(received_block['data']['data']) #TODO: No se si ahora esto es necesario
         piece_manager.receive_block_piece(piece_index, i*DEFAULT_BLOCK_SIZE, received_block.encode('utf-8'))
 
@@ -153,11 +153,12 @@ def dowload_file(dottorrent_file_path, save_at = 'test'):
             piece_manager_inst.clean_memory(rarest_piece)
             print('voy a tratar de descargar la pieza')
             dowload_piece_from_peer(peer_for_download, info, rarest_piece, piece_manager_inst)
+            print(f'piecemanagerinst is completed: {piece_manager_inst.completed}')
             break
             # except:
             #     logger.error('Download error')
-        if not len(owners):
-            break
+            #     if not len(owners):
+            #       break
         
             
     #TODO: Check if the path must cointain /
@@ -175,7 +176,7 @@ def get_block_of_piece(info: dict, piece_index:int, block_offset:int):
     piece_manager = PieceManager(info, 'client_files')
     print('la pieza tiene estos bloques')
     print(piece_manager.pieces[piece_index].number_of_blocks)
-    print(piece_manager.get_block_piece(piece_index, block_offset).data)
+    #print(piece_manager.get_block_piece(piece_index, block_offset).data)
     block = piece_manager.get_block_piece(piece_index, block_offset)
     #block_response = {'data': block.data.decode('utf-8'), 'block_size': block.block_size, 'state': block.state}
     return block.data
@@ -200,10 +201,13 @@ if __name__ == '__main__':
 
     actual_folder = os.getcwd()
 
+    # torrent_file_path = os.path.join(actual_folder, 'torrent_files', 'prueba1.torrent')
+    # dowload_file(torrent_file_path)
+
     if args.archive != None:
-        
+        #TODO: Agregar el tracker al que le vas a subir por paramentros
         file_path = os.path.join(actual_folder, 'client_files', args.archive)
-        upload_file(file_path, ['127.0.0.1:6200'])
+        upload_file(file_path, ['127.0.0.1:6203'])
 
     if args.download != None:
         torrent_file_path = os.path.join(actual_folder, 'torrent_files', args.download)

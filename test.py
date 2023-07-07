@@ -1,21 +1,21 @@
-from client import BitTorrentClient
-from threading import Thread
-import time
+# from torrent_files_utils.torrent_creator import TorrentCreator
+# import os
 
-a = 'a' + 1
+# actual_folder = os.getcwd()
+# file_path = os.path.join(actual_folder, 'client_files', 'archivo.txt')
 
-print(a)
-
-def run(client):
-    client.run()
-
-print("inicio")
-client1 = BitTorrentClient("127.0.0.1", 6200)
-print("cree el cliente 1")
-tr = Thread(target=run,args=[client1])
-tr.start()
-time.sleep(1)
-print("medio")
-client2 = BitTorrentClient("127.0.0.1", 6201)
-client2.testing()
-print("echa pila")
+# tc = TorrentCreator(file_path, 1 << 18, False, ['127.0.0.1:6200'], 'unknow', 'unknow')
+# sha1_hash = tc.get_hash_pieces()
+# tc.create_dottorrent_file('torrent_files')
+a = 0
+while(1):
+    print('hola')
+    
+    while(1):
+        a+=1
+        print(a)
+        if a > 3:
+            break
+    a+=1
+    if a > 10:
+        break
