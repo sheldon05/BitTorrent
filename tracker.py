@@ -108,14 +108,14 @@ def check_chord_connection():
     
     if predecessor != '':
         pred_ip, pred_port = predecessor.split(':')
-        ping = requests.get(f'http://{pred_ip}:{pred_port}/ping').json()
+        ping = ping(pred_ip, pred_port)
 
-        if ping != '200':
+        if ping != 200:
             print('INFO: Ping with predecessor fail')
             pred_pred_ip, pred_pred_port = pred_predecessor.split(':')
-            ping = requests.get(f'http://{pred_pred_ip}:{pred_pred_port}/ping').json()
+            ping = ping(pred_pred_ip, pred_pred_port)
 
-            if ping != '200':
+            if ping != 200:
                 print('INFO: Predeccessor predeccessor ping failed. Chord Ring Incosisteng')
                 predecessor = ''
                 pred_predecessor = ''
