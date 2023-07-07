@@ -5,6 +5,8 @@ import random
 import serpent
 import base64
 import hashlib
+from threading import Thread
+from time import sleep
 from fastapi import FastAPI, Response, BackgroundTasks
 from fastapi.responses import JSONResponse
 from fastapi.encoders import jsonable_encoder
@@ -193,26 +195,34 @@ if __name__ == '__main__':
     parser.add_argument('--archive', type=str, metavar='', help='Direccion del archivo')
     parser.add_argument('--download', type=str, metavar='', help='Direccion del .torrent a descargar')
 
+    actual_folder = os.getcwd()
+    
+    def action_dispatcher(args):
+        if args.archive != None:
+            #TODO: Agregar el tracker al que le vas a subir por paramentros
+            file_path = os.path.join(actual_folder, 'client_files', args.archive)
+            upload_file(file_path, ['127.0.0.1:6203'])
+
+        if args.download != None:
+            torrent_file_path = os.path.join(actual_folder, 'torrent_files', args.download)
+            dowload_file(torrent_file_path)
+
     # Procesa los argumentos de línea de comandos
     args = parser.parse_args()
 
     ip = args.ip
     port = args.port
 
-    actual_folder = os.getcwd()
+    t1 = Thread(target=run)
+    t1.start()
+
+    sleep(1)
+
+    t2 = Thread(target=action_dispatcher, args=[args])
+    t2.start()
+
+    t1.join()
+    t2.join()
 
     # torrent_file_path = os.path.join(actual_folder, 'torrent_files', 'prueba1.torrent')
     # dowload_file(torrent_file_path)
-
-    if args.archive != None:
-        #TODO: Agregar el tracker al que le vas a subir por paramentros
-        file_path = os.path.join(actual_folder, 'client_files', args.archive)
-        upload_file(file_path, ['127.0.0.1:6203'])
-
-    if args.download != None:
-        torrent_file_path = os.path.join(actual_folder, 'torrent_files', args.download)
-        dowload_file(torrent_file_path)
-
-    run()
-
-    

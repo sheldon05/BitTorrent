@@ -1,6 +1,8 @@
 import Pyro4
 import hashlib
 from threading import Timer
+from threading import Thread
+from time import sleep
 from copy import copy
 from fastapi import FastAPI, Response, BackgroundTasks
 from fastapi.responses import JSONResponse
@@ -30,6 +32,10 @@ pred_predecessor = '' #IP:PORT
 database = {}
 
 replication_database = {}
+
+
+def run():
+    uvicorn.run(fastapi, host=ip, port=port)
 
 
 def set_ip_port(incoming_ip, incoming_port):
@@ -418,7 +424,7 @@ def join(ip, port):
         pre_ip, pre_port = predecessor.split(':')
         requests.put(f"http://{pre_ip}:{pre_port}/set_successor", params={'node': get_ip_port()})
         pred_predecessor = requests.get(f"http://{pre_ip}:{pre_port}/get_predecessor").json()
-        succ_succesor = requests.get(f"http://{suc_ip}:{suc_port}/get_succesor").json()
+        succ_succesor = requests.get(f"http://{suc_ip}:{suc_port}/get_successor").json()
         succ_succesor_ip, succ_succesor_port = succ_succesor.split(':')
         requests.put(f"http://{succ_succesor_ip}:{succ_succesor_port}/set_pred_predecessor", params={'node': get_ip_port()})
         # proxy_tracker = self.connect_to(pre_ip, int(pre_port))
@@ -490,6 +496,17 @@ if __name__ == '__main__':
     parser.add_argument('--port', type=int, metavar='', help='Tu puerto')
     parser.add_argument('--join', type=str, metavar='', help='ip:port de la puerta de entrada al chord')
 
+    def action_dispatcher(args):
+        if args.join != None:
+            node_ip, node_port = args.join.split(':')
+            join(node_ip, node_port)
+            print(f'predecesor: {predecessor}')
+            print(f'successor: {successor}')
+            print('Este es el predecesor del que me uni')
+            print(requests.get(f"http://{node_ip}:{node_port}/get_predecessor").json())
+            print('Este es el sucesor del que me uni')
+            print(requests.get(f"http://{node_ip}:{node_port}/get_successor").json())
+
     # Procesa los argumentos de línea de comandos
     args = parser.parse_args()
 
@@ -497,17 +514,21 @@ if __name__ == '__main__':
     port = args.port
     node_id = sha256_hash(ip + ':' + str(port))
 
-    if args.join != None:
-        node_ip, node_port = args.join.split(':')
-        join(node_ip, node_port)
-        print(f'predecesor: {predecessor}')
-        print(f'successor: {successor}')
-        print('Este es el predecesor del que me uni')
-        print(requests.get(f"http://{node_ip}:{node_port}/get_predecessor").json())
-        print('Este es el sucesor del que me uni')
-        print(requests.get(f"http://{node_ip}:{node_port}/get_successor").json())
+    t1 = Thread(target=run)
+    t1.start()
+    sleep(1)
 
-    uvicorn.run(fastapi, host=ip, port=port)
+    t2 = Thread(target=action_dispatcher, args=[args])
+    t2.start()
+    
+    t1.join()
+    t2.join()
+
+    
+
+
+
+    #uvicorn.run(fastapi, host=ip, port=port)
 
 
 # tracker = Tracker("127.0.0.1", 6200)
