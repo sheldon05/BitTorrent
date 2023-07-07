@@ -12,7 +12,6 @@ import requests
 import json
 
 
-
 def sha256_hash(s):
     return int(hashlib.sha256(s.encode()).hexdigest(), 16)
 
@@ -22,14 +21,34 @@ port = ''
 node_id = ''
 successor = '' # 'IP:PORT'
 predecessor = '' # 'IP:PORT'
+
+pred_predecessor = '' #IP:PORT
+
 # keys are the concatenation of sha1 hash of the pieces of the files, pieces key in .torrent
 # values ip and port of the peers that potentially have the piece  , list of tuples (ip,port)
 database = {}
+
+replication_database = {}
+
 
 def set_ip_port(incoming_ip, incoming_port):
     ip = incoming_ip
     port = incoming_port
     node_id = sha256_hash(self.ip + ':' + str(self.port))
+
+
+@server_routes.get("/ping")
+def ping(ip, port):    
+    try:
+        requests.get(f'http://{ip}:{port}/active', timeout=1.5)
+        return 200
+    except:
+        return 500
+    
+@server_routes.get("/active")
+def active():
+  return True
+
 
 @fastapi.get("/get_peers")
 def get_peers(pieces_sha1):
