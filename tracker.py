@@ -54,16 +54,27 @@ def active():
 def fix_connection():
     global predecessor
     global pred_predecessor
+    global successor
 
     print('INFO: Fixing Chord Connections')
 
     #TODO: Metodo del Kuko para volver a distribuir la informacion
     pred_pred_ip, pred_pred_port = pred_predecessor.split(':')
 
-    predecessor = pred_predecessor
-    requests.put(f"http://{pred_pred_ip}:{pred_pred_port}/set_successor", params={'node': get_ip_port()})
+    pred_pred_id = requests.get(f'http://{pred_pred_ip}:{pred_pred_port}/get_node_id').json()
 
-    pred_predecessor = requests.get(f"http://{pred_pred_ip}:{pred_pred_port}/get_predecessor").json()
+    if pred_pred_id == get_node_id:
+        print('INFO: The predecessor of my predecessor is myself')
+        successor = ''
+        predecessor = ''
+        pred_predecessor = ''
+        clean_replication_database()
+
+    else:
+        predecessor = pred_predecessor
+        requests.put(f"http://{pred_pred_ip}:{pred_pred_port}/set_successor", params={'node': get_ip_port()})
+
+        pred_predecessor = requests.get(f"http://{pred_pred_ip}:{pred_pred_port}/get_predecessor").json()
 
 
 
@@ -73,6 +84,9 @@ def fix_connection():
 def check_chord_connection():
     global predecessor
     global pred_predecessor
+
+    print(f'Predecessor: {predecessor}')
+    print(f'Predecessor predecessor: {pred_predecessor}')
 
     if predecessor != '':
         pred_ip, pred_port = predecessor.split(':')
@@ -89,7 +103,9 @@ def check_chord_connection():
                 pred_predecessor = ''
 
             else:
+                #TODO :Ver casos extremos de dos trackers
                 print('INFO: Predeccessor predecessor ping succefully')
+                
                 fix_connection()
 
         else:
