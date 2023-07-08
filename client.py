@@ -39,6 +39,18 @@ def run():
     uvicorn.run(fastapi, host=ip, port=port)
 
 
+def ping(ip, port):    
+    try:
+        requests.get(f'http://{ip}:{port}/active')
+        return 200
+    except:
+        return 500
+    
+@fastapi.get("/active")
+def active():
+  return True
+
+
 def update_trackers(trackers, sha1, remove : bool = False):
     if remove:
         for tracker_ip, tracker_port in trackers:
@@ -46,7 +58,7 @@ def update_trackers(trackers, sha1, remove : bool = False):
             # tracker_proxy = self.connect_to(tracker_ip, tracker_port, 'tracker')
             # tracker_proxy.remove_from_database(sha1, self.ip, self.port)
     else:
-        print('estoy haciendo update trackers')
+        print('INFO: Update Trackers in progress')
         for tracker_ip, tracker_port in trackers:
             requests.put(f"http://{tracker_ip}:{tracker_port}/add_to_trackers", params= {'pieces_sha1': sha1, "ip": ip, "port": port})
             # tracker_proxy = self.connect_to(tracker_ip, tracker_port, 'tracker')

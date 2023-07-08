@@ -44,7 +44,6 @@ def set_ip_port(incoming_ip, incoming_port):
     node_id = sha256_hash(self.ip + ':' + str(self.port))
 
 
-@fastapi.get("/ping")
 def ping(ip, port):    
     try:
         requests.get(f'http://{ip}:{port}/active')
