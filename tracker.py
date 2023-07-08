@@ -47,7 +47,7 @@ def set_ip_port(incoming_ip, incoming_port):
 @fastapi.get("/ping")
 def ping(ip, port):    
     try:
-        requests.get(f'http://{ip}:{port}/active', timeout=1.5)
+        requests.get(f'http://{ip}:{port}/active')
         return 200
     except:
         return 500
@@ -87,13 +87,16 @@ def fix_connection():
 
 
 def stabilize_databases():
+    print('INFO: running stabilize_databases')
     global pred_predecessor
+    print(f'INFO: pred_predecessor: {pred_predecessor}')
     pred_predecessor_ip, pred_predecessor_port = pred_predecessor.split(':')
     pred_predecessor_replication_database = requests.get(f"http://{pred_predecessor_ip}:{pred_predecessor_port}/get_replication_database").json()
+    print(f'la replication_database de mi pred_predecessor es {pred_predecessor_replication_database}')
     for pieces_sha256, peers in pred_predecessor_replication_database.items():
         for ip, port in peers:
             add_to_database(int(pieces_sha256), ip, port)
-    
+            print(f'annadi la pieza esta supuestamente: {pieces_sha256}')
     requests.delete(f"http://{pred_predecessor_ip}:{pred_predecessor_port}/clean_replication_database")
     for pieces_sha256, peers in database.items():
         for ip, port in peers:
@@ -113,15 +116,17 @@ def check_chord_connection():
     
     
     if predecessor != '':
+        print('Tengo un predecesor')
         pred_ip, pred_port = predecessor.split(':')
-        ping = ping(pred_ip, pred_port)
+        ping_response = ping(pred_ip, pred_port)
+        print(f'Ping me respondio esto: {ping_response}')
 
-        if ping != 200:
+        if ping_response != 200:
             print('INFO: Ping with predecessor fail')
             pred_pred_ip, pred_pred_port = pred_predecessor.split(':')
-            ping = ping(pred_pred_ip, pred_pred_port)
+            ping_response = ping(pred_pred_ip, pred_pred_port)
 
-            if ping != 200:
+            if ping_response != 200:
                 print('INFO: Predeccessor predeccessor ping failed. Chord Ring Incosisteng')
                 predecessor = ''
                 pred_predecessor = ''
@@ -192,6 +197,7 @@ def add_to_database(pieces_sha256:int, ip, port):
     global predecessor
     print(type(pieces_sha256))
     if predecessor != '':
+    
         pred_ip, pred_port = predecessor.split(':')
         requests.put(f"http://{pred_ip}:{pred_port}/add_to_replication_database", params={'pieces_sha256':pieces_sha256, 'ip':ip, 'port':port})
     if pieces_sha256 in database.keys():
