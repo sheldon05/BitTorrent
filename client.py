@@ -205,15 +205,16 @@ if __name__ == '__main__':
     parser.add_argument('--ip', type=str, metavar='', help='Tu ip')
     parser.add_argument('--port', type=int, metavar='', help='Tu puerto')
     parser.add_argument('--archive', type=str, metavar='', help='Direccion del archivo')
+    parser.add_argument('--tracker', type=str, metavar='', help='Ip Port del tracker al que vas a subir el archivo')
     parser.add_argument('--download', type=str, metavar='', help='Direccion del .torrent a descargar')
 
     actual_folder = os.getcwd()
     
     def action_dispatcher(args):
-        if args.archive != None:
+        if args.archive != None and args.tracker != None:
             #TODO: Agregar el tracker al que le vas a subir por paramentros
             file_path = os.path.join(actual_folder, 'client_files', args.archive)
-            upload_file(file_path, ['127.0.0.1:6203'])
+            upload_file(file_path, [args.tracker])
 
         if args.download != None:
             torrent_file_path = os.path.join(actual_folder, 'torrent_files', args.download)
