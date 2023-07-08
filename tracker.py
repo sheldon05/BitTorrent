@@ -1,4 +1,3 @@
-import Pyro4
 import hashlib
 from threading import Timer
 from threading import Thread
@@ -35,7 +34,7 @@ replication_database = {}
 
 
 def run():
-    uvicorn.run(fastapi, host=ip, port=port)
+    uvicorn.run(fastapi, host='0.0.0.0', port=port)
 
 
 def set_ip_port(incoming_ip, incoming_port):
@@ -479,9 +478,7 @@ def set_pred_predecessor(node:str):
     global pred_predecessor
     pred_predecessor = node  
 
-@Pyro4.expose
-def dummy_response(self):
-    return "DUMMY RESPONSE"
+
 
 
 # def connect_to(self, ip, port, type_of_peer):

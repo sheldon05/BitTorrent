@@ -1,6 +1,6 @@
 version: '3'
 services:
-  node1:
+  tracker1:
     build: .
     ports:
       - "9091:9091"
@@ -8,8 +8,8 @@ services:
       mynet:
         ipv4_address: 172.20.0.2
     command:
-      - bash
-  node2:
+      - /bin/bash
+  client1:
     build: .
     ports:
       - "9092:9092"
@@ -17,7 +17,7 @@ services:
       mynet:
         ipv4_address: 172.20.0.3
     command:
-      - bash
+      - /bin/bash
 networks:
   mynet:
     driver: bridge

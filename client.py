@@ -1,9 +1,6 @@
-import Pyro4
 import os
 import math
 import random
-import serpent
-import base64
 import hashlib
 from threading import Thread
 from time import sleep
@@ -36,7 +33,7 @@ port = ''
 
 
 def run():
-    uvicorn.run(fastapi, host=ip, port=port)
+    uvicorn.run(fastapi, host='0.0.0.0', port=port)
 
 
 def ping(ip, port):    
