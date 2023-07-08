@@ -306,6 +306,12 @@ def distribute_information():
         owner_id = requests.get(f"http://{owner_ip}:{owner_port}/get_node_id").json()
 
         if int(owner_id) == node_id:
+            successor_ip, successor_port = successor.split(':')
+            successor_database = requests.get(f"http://{successor_ip}:{successor_port}/get_database")
+            if str(pieces_sha256) in successor_database.keys():
+                for ip, port in successor_database[str(pieces_sha256)]:
+                    add_to_database(pieces_sha256, ip, port)
+                    requests.delete(f"http://{successor_ip}:{successor_port}/remove_key_from_database", params={'key':int(pieces_sha256)})
             continue
 
         for ip, port in peers:
