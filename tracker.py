@@ -306,7 +306,7 @@ def distribute_information():
 
         if int(owner_id) == node_id:
             successor_ip, successor_port = successor.split(':')
-            successor_database = requests.get(f"http://{successor_ip}:{successor_port}/get_database")
+            successor_database = requests.get(f"http://{successor_ip}:{successor_port}/get_database").json()
             if str(pieces_sha256) in successor_database.keys():
                 for ip, port in successor_database[str(pieces_sha256)]:
                     add_to_database(pieces_sha256, ip, port)
