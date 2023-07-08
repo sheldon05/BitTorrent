@@ -64,7 +64,6 @@ def fix_connection():
 
     print('INFO: Fixing Chord Connections')
 
-    stabilize_databases()
     pred_pred_ip, pred_pred_port = pred_predecessor.split(':')
 
     pred_pred_id = requests.get(f'http://{pred_pred_ip}:{pred_pred_port}/get_node_id').json()
@@ -82,25 +81,26 @@ def fix_connection():
 
         pred_predecessor = requests.get(f"http://{pred_pred_ip}:{pred_pred_port}/get_predecessor").json()
 
+    stabilize_databases()
 
 
 
 
 def stabilize_databases():
     print('INFO: running stabilize_databases')
-    global pred_predecessor
-    print(f'INFO: pred_predecessor: {pred_predecessor}')
-    pred_predecessor_ip, pred_predecessor_port = pred_predecessor.split(':')
-    pred_predecessor_replication_database = requests.get(f"http://{pred_predecessor_ip}:{pred_predecessor_port}/get_replication_database").json()
-    print(f'la replication_database de mi pred_predecessor es {pred_predecessor_replication_database}')
-    for pieces_sha256, peers in pred_predecessor_replication_database.items():
+    global predecessor
+    print(f'INFO: predecessor: {predecessor}')
+    predecessor_ip, predecessor_port = predecessor.split(':')
+    predecessor_replication_database = requests.get(f"http://{predecessor_ip}:{predecessor_port}/get_replication_database").json()
+    print(f'la replication_database de mi predecessor es {predecessor_replication_database}')
+    for pieces_sha256, peers in predecessor_replication_database.items():
         for ip, port in peers:
             add_to_database(int(pieces_sha256), ip, port)
             print(f'annadi la pieza esta supuestamente: {pieces_sha256}')
-    requests.delete(f"http://{pred_predecessor_ip}:{pred_predecessor_port}/clean_replication_database")
+    requests.delete(f"http://{predecessor_ip}:{predecessor_port}/clean_replication_database")
     for pieces_sha256, peers in database.items():
         for ip, port in peers:
-            requests.put(f"http://{pred_predecessor_ip}:{pred_predecessor_port}/add_to_replication_database", params={'pieces_sha256':pieces_sha256, 'ip':ip, 'port':port})
+            requests.put(f"http://{predecessor_ip}:{predecessor_port}/add_to_replication_database", params={'pieces_sha256':pieces_sha256, 'ip':ip, 'port':port})
     
 
 @fastapi.on_event('startup')
