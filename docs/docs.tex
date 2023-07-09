@@ -43,7 +43,7 @@ Tracker del archivo tracker.py.
 \subsection{Cliente BitTorrent}
 Un Cliente BitTorrent es un peer que sirve y descarga archivos. Un cliente es puede iniciar la descarga de un archivo a partir de tener
 el .torrent correspondiente al archivo que se quiera descargar. Todo cliente que se encuentra compartiendo un archivo es capaz de
-enviar el mismo ( o partes de este, véase epígrafe X). Una vez que un cliente tiene una parte de un archivo inmediatamente 
+enviar el mismo ( o partes de este, véase secci\'on 1.5). Una vez que un cliente tiene una parte de un archivo inmediatamente 
 este la comparte en la red para que otros clientes puedan descargar de él dicha pieza.
 
 
@@ -64,7 +64,7 @@ que se quiere descargar. Dicha informaci\'on esta dispuesta en una serie de camp
 
 \subsection{Compartir un archivo}
 El proceso de intercambio en la red BitTorrent inicia cuando un cliente comienza a compartir un archivo local. Para esto se
-utiliza el método \textbf{upload_file} con la dirección de un archivo local que se quiere comenzar a compartir y con la dirección 
+utiliza el método \textbf{upload\_file} con la dirección de un archivo local que se quiere comenzar a compartir y con la dirección 
 de algún tracker (potencialmente más de uno) al que se va a notificar que se está compartiendo el archivo. Se genera a partir de esta información el .torrent 
 correspondiente al archivo a compartir. Posterior a esto se lo notifica al tracker que este cliente identificado por su ip:port 
 está compartiendo el archivo reconocible por el identificador creado en el .torrent.
@@ -72,7 +72,7 @@ está compartiendo el archivo reconocible por el identificador creado en el .tor
 \subsection{Descarga y transferencia de Archivos}
 Para iniciar la descarga de un archivo un cliente debe tener el .torrent correspondiente al archivo que se quiere descargar. A partir de 
 las direcciones de trackers en el announce-list de este .torrent el cliente realiza la petición a un tracker de que peers de la red 
-están compartiendo el archivo, a través del método \textbf{get_peers_from_tracker}, la respuesta a esta petición será una lista de 
+están compartiendo el archivo, a través del método \textbf{get\_peers\_from\_tracker}, la respuesta a esta petición será una lista de 
 peers que poseen al menos una parte del archivo. Para la transferencia de archivos, un archivo se desglosa por piezas, de un tamaño 
 prefijado, y estas a su vez se desglosan en bloques, de un tamaño igualmente prefijado, los clientes se transfieren entre sí una pieza y esta 
 a su vez se transfiere un bloque a la vez. Una vez que el cliente tiene la lista de peers brindada por el tracker necesita saber que piezas del archivo 
