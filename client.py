@@ -91,21 +91,25 @@ def get_peers_from_tracker(torrent_info):
 def find_rarest_piece(peers, torrent_info : TorrentInfo, owned_pieces):
     count_of_pieces = [0 for i in range(torrent_info.number_of_pieces)]
     owners = [[] for i in range(torrent_info.number_of_pieces)]
+    rarest_piece = -1
     print(peers)
     for ip, port in peers:
         print(f'INFO: Asking to {ip}:{port} for the bitfield')
         info = dict(torrent_info.metainfo['info'])
         info['md5sum'] = hashlib.md5(info['md5sum']).hexdigest() 
-        peer_bit_field = requests.get(f"http://{ip}:{port}/get_bit_field_of", json=info).json()
-        print(f'This is the bitfield received: {peer_bit_field}')
-        for i in range(len(peer_bit_field)):
-            if peer_bit_field[i]:
-                count_of_pieces[i] = count_of_pieces[i] + 1
-                owners[i].append((ip, port))
-        rarest_piece = count_of_pieces.index(min(count_of_pieces))
-        while(owned_pieces[rarest_piece]):
-            count_of_pieces[rarest_piece] = math.inf
+        try:
+            peer_bit_field = requests.get(f"http://{ip}:{port}/get_bit_field_of", json=info).json()
+            print(f'This is the bitfield received: {peer_bit_field}')
+            for i in range(len(peer_bit_field)):
+                if peer_bit_field[i]:
+                    count_of_pieces[i] = count_of_pieces[i] + 1
+                    owners[i].append((ip, port))
             rarest_piece = count_of_pieces.index(min(count_of_pieces))
+            while(owned_pieces[rarest_piece]):
+                count_of_pieces[rarest_piece] = math.inf
+                rarest_piece = count_of_pieces.index(min(count_of_pieces))
+        except:
+            continue
     return rarest_piece, owners[rarest_piece]
 
 
@@ -134,6 +138,8 @@ def dowload_file(dottorrent_file_path, save_at = 'test'):
     print('INFO: Updated trackers with my download')
     while not piece_manager_inst.completed:
         rarest_piece, owners = find_rarest_piece(peers, info, piece_manager_inst.bitfield)
+        if rarest_piece == -1:
+            continue
         print(f'rarest piece:{rarest_piece}, owners{owners}')
         while len(owners)>0:
             peer_for_download = owners[random.randint(0,len(owners)-1)]
