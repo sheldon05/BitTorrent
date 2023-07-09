@@ -30,7 +30,7 @@ port = ''
 
 # To test locally host must be ip, to use it in docker host must be:'0.0.0.0'
 def run():
-    uvicorn.run(fastapi, host=ip, port=port)
+    uvicorn.run(fastapi, host='0.0.0.0', port=port)
 
 
 def ping(ip, port):    
