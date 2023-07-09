@@ -12,13 +12,10 @@ class PieceManager:
         '''
             Initialize the piece manager
         '''
-        print(f"esto es info de piece manager: {info}")
-        #info = dict(info)
         self.file_size = info['length'] # The file size
         self.piece_size = info['piece length'] # The piece size
         self.filename = f"{save_at}/{info['name']}" # The file name
         self.number_of_pieces = math.ceil(self.file_size/self.piece_size) # The number of pieces of the file
-        print(f"Cantidad de piezas from piece manager: {self.number_of_pieces}")
         self.bitfield = [False for i in range(self.number_of_pieces)] # Bitfield of the pieces
         self.completed_pieces: int = 0 # Number of pieces that are completed
         self.dottorrent_pieces = info['pieces'] # SHA1 of the all pieces unioned
@@ -82,19 +79,14 @@ class PieceManager:
 
     def __check_local_pieces(self):
         path = self.filename
-        print('debug on check_local_pieces')
         print(path)
         if os.path.exists(path):
-            print("el path existia")
             for piece_index in range(self.number_of_pieces):
                 with open(path, 'rb') as f:
                     chunk = f.read(self.piece_size)
-                    print('este es el chunk ',chunk)
                     while(chunk):
                         sha1chunk = hashlib.sha1(chunk).hexdigest()
-                        print('este es el sha1', sha1chunk)
                         piece: 'Piece' = self.pieces[piece_index]
-                        print('este es el sha1 de la pieza segun la metainfo', piece.piece_hash)
                         if sha1chunk == piece.piece_hash:  # This piece is already written in the file
                             self.bitfield[piece_index] = True
                             piece.is_completed = True

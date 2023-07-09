@@ -32,9 +32,9 @@ database = {}
 
 replication_database = {}
 
-
+# To test locally host must be ip, to use it in docker host must be:'0.0.0.0'
 def run():
-    uvicorn.run(fastapi, host='0.0.0.0', port=port)
+    uvicorn.run(fastapi, host=ip, port=port)
 
 
 def set_ip_port(incoming_ip, incoming_port):
@@ -67,7 +67,7 @@ def fix_connection():
     pred_pred_id = requests.get(f'http://{pred_pred_ip}:{pred_pred_port}/get_node_id').json()
 
     if pred_pred_id == get_node_id:
-        print('INFO: The predecessor of my predecessor is myself')
+        print('INFO: Im the predecessor of my predecessor')
         successor = ''
         predecessor = ''
         pred_predecessor = ''
@@ -87,14 +87,11 @@ def fix_connection():
 def stabilize_databases():
     print('INFO: running stabilize_databases')
     global predecessor
-    print(f'INFO: predecessor: {predecessor}')
     predecessor_ip, predecessor_port = predecessor.split(':')
     predecessor_replication_database = requests.get(f"http://{predecessor_ip}:{predecessor_port}/get_replication_database").json()
-    print(f'la replication_database de mi predecessor es {predecessor_replication_database}')
     for pieces_sha256, peers in predecessor_replication_database.items():
         for ip, port in peers:
             add_to_database(int(pieces_sha256), ip, port)
-            print(f'annadi la pieza esta supuestamente: {pieces_sha256}')
     requests.delete(f"http://{predecessor_ip}:{predecessor_port}/clean_replication_database")
     for pieces_sha256, peers in database.items():
         for ip, port in peers:
@@ -109,15 +106,15 @@ def check_chord_connection():
 
     print(f'Predecessor: {predecessor}')
     print(f'Predecessor predecessor: {pred_predecessor}')
-    print(f'Esta es mi database: {database}')
-    print(f'Esta es mi replication_database: {replication_database}')
+    print(f'database: {database}')
+    print(f'replication_database: {replication_database}')
     
     
     if predecessor != '':
-        print('Tengo un predecesor')
+        print('INFO: Predecessor exists')
         pred_ip, pred_port = predecessor.split(':')
         ping_response = ping(pred_ip, pred_port)
-        print(f'Ping me respondio esto: {ping_response}')
+        print(f'Ping response: {ping_response}')
 
         if ping_response != 200:
             print('INFO: Ping with predecessor fail')
@@ -146,18 +143,17 @@ def get_peers(pieces_sha1):
 
     if successor != '':
         owner_ip, owner_port = find_successor(pieces_sha256).split(':')
-        print(f'Ese archivo lo debe tener segun find_succesor: {owner_ip}:{owner_port}')
+        print(f'Asking to: {owner_ip}:{owner_port} for the file')
         try:
-            #TODO: Ver si se pregunta a si mismo
             peers = requests.get(f"http://{owner_ip}:{owner_port}/get_database").json()[str(pieces_sha256)]
         except KeyError:
-            print("Not exist the torrent file")
+            print("INFO: Not exist the torrent file")
             peers = []
     else:
         try:
             peers = database[pieces_sha256]
         except KeyError:
-            print("Not exist the torrent file")
+            print("INFO: Not exist the torrent file")
             peers = []
     return peers
 
@@ -193,55 +189,54 @@ def get_successor():
 @fastapi.put("/add_to_database")
 def add_to_database(pieces_sha256:int, ip, port):
     global predecessor
-    print(type(pieces_sha256))
     if predecessor != '':
     
         pred_ip, pred_port = predecessor.split(':')
         requests.put(f"http://{pred_ip}:{pred_port}/add_to_replication_database", params={'pieces_sha256':pieces_sha256, 'ip':ip, 'port':port})
     if pieces_sha256 in database.keys():
-        print("llegue aqui")
         if not (ip,port) in database[pieces_sha256]:
             database[pieces_sha256].append((ip, port))
+            print(f'INFO: File updated in database: {pieces_sha256}')
 
     else:
-        print(f'annadi la pieza a la database de {port}')
         database[pieces_sha256] = [(ip, port)]
+        print(f'INFO: File added to the database: {pieces_sha256}')
 
 @fastapi.put("/add_to_replication_database")
 def add_to_replication_database(pieces_sha256:int, ip, port):
     print(type(pieces_sha256))
     if pieces_sha256 in replication_database.keys():
-        print("llegue aqui")
         if not (ip,port) in replication_database[pieces_sha256]:
             replication_database[pieces_sha256].append((ip, port))
-
+            print(f'INFO: File updated in replication_database: {pieces_sha256}')
     else:
-        print(f'annadi la pieza a la database de {port}')
         replication_database[pieces_sha256] = [(ip, port)]
+        print(f'INFO: File added to the database: {pieces_sha256}')
 
 @fastapi.delete("/clean_replication_database")
 def clean_replication_database():
     global replication_database
+    print('INFO: Cleaning database')
     replication_database.clear()
 
 @fastapi.delete("/remove_from_database")
 def remove_from_database(pieces_sha1, ip, port):
     pieces_sha256 = sha256_hash(pieces_sha1)
     if pieces_sha1 in database.keys():
-        if not (ip,port) in database[pieces_sha1]:
+        if (ip,port) in database[pieces_sha1]:
             database[pieces_sha1].remove((ip, port))
+            print(f'INFO: Owner {ip}:{port} of {pieces_256} removed from database')
 
+#TODO: When remove sometime from database, remove it from replication_database
 
 @fastapi.delete("/remove_key_from_database")
-def remove_key_from_database(key:int): #TODO: Revisar el tipo que tengo que ponerle en la anotacion
+def remove_key_from_database(key:int):
     if key in database.keys():
         database.pop(key)
-    else:
-        print(f"No puedo remover la llave {key}")
-        print(f'Esta es mi database: {database}')
+        print(f'INFO: File {key} removed from database')
 
 
-@fastapi.put("/add_to_trackers") #Check this, use of post, put or get
+@fastapi.put("/add_to_trackers")
 def add_to_trackers(pieces_sha1, ip, port):
     pieces_sha256 = sha256_hash(pieces_sha1)
     if successor == '':
@@ -249,8 +244,7 @@ def add_to_trackers(pieces_sha1, ip, port):
     else:
         tracker_ip, tracker_port = find_successor(pieces_sha256).split(':')
         requests.put(f"http://{tracker_ip}:{tracker_port}/add_to_database", params={'pieces_sha256':pieces_sha256, 'ip':ip, 'port':port})
-        # proxy_tracker = self.connect_to(tracker_ip, int(tracker_port), 'tracker')
-        # proxy_tracker.add_to_database(pieces_sha256, ip, port)
+
 
 
 @fastapi.get("/find_successor")
@@ -263,12 +257,10 @@ def find_successor(key:int):
         ip_port_next = predecessor
         ip_next, port_next = ip_port_next.split(':')
         next_node_id = requests.get(f"http://{ip_next}:{port_next}/get_node_id").json()
-        #proxy_tracker = self.connect_to(ip_next, int(port_next), 'tracker')
         while(key < int(next_node_id)):
             actual_node_id = int(next_node_id)
             ip_port_next = requests.get(f"http://{ip_next}:{port_next}/get_predecessor").json()
             ip_next, port_next = ip_port_next.split(':')
-            #proxy_tracker = self.connect_to(ip_next, int(port_next), 'tracker')
             next_node_id = requests.get(f"http://{ip_next}:{port_next}/get_node_id").json()
             if int(next_node_id) > actual_node_id:
                 ip_port_succ = requests.get(f"http://{ip_next}:{port_next}/get_successor").json()
@@ -281,13 +273,10 @@ def find_successor(key:int):
         ip_port_next = successor
         ip_next, port_next = ip_port_next.split(':')
         next_node_id = requests.get(f"http://{ip_next}:{port_next}/get_node_id").json()
-        #proxy_tracker = self.connect_to(ip_next, int(port_next), 'tracker')
         while(key > int(next_node_id)):
             actual_node_id = int(next_node_id)
             ip_port_next = requests.get(f"http://{ip_next}:{port_next}/get_successor").json()
-            print(f'este fue el ip_port_next que me llego: {ip_port_next}')
             ip_next, port_next = ip_port_next.split(':')
-            #proxy_tracker = self.connect_to(ip_next, int(port_next), 'tracker')
             next_node_id = requests.get(f"http://{ip_next}:{port_next}/get_node_id").json()
             if int(next_node_id) < actual_node_id:
                 return requests.get(f"http://{ip_next}:{port_next}/get_ip_port").json()
@@ -300,7 +289,6 @@ def distribute_information():
     print('voy a distribuir la info')
     for pieces_sha256, peers in database.items():
         owner_ip, owner_port = find_successor(pieces_sha256).split(':')
-        #owner_proxy = self.connect_to(owner_ip, int(owner_port), 'tracker')
         owner_id = requests.get(f"http://{owner_ip}:{owner_port}/get_node_id").json()
 
         if int(owner_id) == node_id:
@@ -313,16 +301,12 @@ def distribute_information():
             continue
 
         for ip, port in peers:
-            #owner_proxy.add_to_database(pieces_sha256, ip, port)
             requests.put(f"http://{owner_ip}:{owner_port}/add_to_database", params={'pieces_sha256':pieces_sha256, 'ip':ip, 'port':port})
 
         database.pop(pieces_sha256)
 
     successor_ip, successor_port = successor.split(':')
     predecessor_ip, predecessor_port = predecessor.split(':')
-    
-    #successor_proxy = self.connect_to(successor_ip, int(successor_port), 'tracker')
-    #predecessor_proxy = self.connect_to(predecessor_ip, int(predecessor_port), 'tracker')
 
     succ_id = requests.get(f"http://{successor_ip}:{successor_port}/get_node_id").json()
     pred_id = requests.get(f"http://{predecessor_ip}:{predecessor_port}/get_node_id").json()
@@ -330,7 +314,7 @@ def distribute_information():
     if int(succ_id) < node_id:
         succ_database = requests.get(f"http://{successor_ip}:{successor_port}/get_database").json()
         for pieces_sha256, peers in succ_database.items():
-            if int(pieces_sha256) <= node_id and int(pieces_sha256) > int(succ_id): #TODO: Este pieces_sha256 es un entero?
+            if int(pieces_sha256) <= node_id and int(pieces_sha256) > int(succ_id):
                 for ip, port in peers:
                     add_to_database(int(pieces_sha256), ip, port)
                 requests.delete(f"http://{successor_ip}:{successor_port}/remove_key_from_database", params={'key':int(pieces_sha256)})
@@ -347,7 +331,7 @@ def distribute_information():
     elif int(pred_id) > node_id:
         succ_database = requests.get(f"http://{successor_ip}:{successor_port}/get_database").json()
         for pieces_sha256, peers in succ_database.items():
-            if int(pieces_sha256) <= node_id or int(pieces_sha256) > int(succ_id): #Aqui si lo tengo que convertir xq el numero grandisimo del hash fastapi lo pasa como string
+            if int(pieces_sha256) <= node_id or int(pieces_sha256) > int(succ_id):
                 for ip, port in peers:
                     add_to_database(int(pieces_sha256), ip, port)
                 requests.delete(f"http://{successor_ip}:{successor_port}/remove_key_from_database", params={'key':int(pieces_sha256)})
@@ -376,19 +360,8 @@ def distribute_information():
                     print('voy a annadirla')
                     add_to_database(int(pieces_sha256), ip, port)
 
-                #successor_proxy.remove_key_from_database(pieces_sha256)
                 requests.delete(f"http://{successor_ip}:{successor_port}/remove_key_from_database", params={'key':int(pieces_sha256)})
 
-        print(node_id)
-        print('mi database')
-        print(database)
-        print('la otra id')
-
-        print(requests.get(f"http://{'127.0.0.1'}:{'6203'}/get_node_id").json())
-        print("La otra database")
-        print(requests.get(f"http://{'127.0.0.1'}:{'6203'}/get_database").json())
-        #proxy_test = self.connect_to('127.0.0.1', 6200, 'tracker') #TODO: Que es esto
-        #print(proxy_test.get_database())
     
     #updating replication_databases
     requests.delete(f"http://{predecessor_ip}:{predecessor_port}/clean_replication_database")
@@ -403,16 +376,12 @@ def distribute_information():
         for ip, port in peers:
             add_to_replication_database(int(pieces_sha256), ip, port)
 
-# TODO: Probar este metodo.
-
             
-
 def join(ip, port):
     global successor
     global predecessor
     global pred_predecessor
     
-    # proxy_tracker = self.connect_to(ip, port, 'tracker')
     succ_of_entry = requests.get(f"http://{ip}:{port}/get_successor").json()
     if succ_of_entry == '':
         successor = requests.get(f"http://{ip}:{port}/get_ip_port").json()
@@ -421,46 +390,24 @@ def join(ip, port):
         requests.put(f"http://{ip}:{port}/set_successor", params={'node': get_ip_port()})
         requests.put(f"http://{ip}:{port}/set_predecessor", params={'node': get_ip_port()})
         requests.put(f"http://{ip}:{port}/set_pred_predecessor", params={'node': predecessor})
-        # proxy_tracker.set_successor(self.get_ip_port())
-        # proxy_tracker.set_predecessor(self.get_ip_port())
+
     else:
         successor = requests.get(f"http://{ip}:{port}/find_successor", params={'key': node_id}).json()
         suc_ip, suc_port = successor.split(':') 
-        #proxy_tracker = self.connect_to(suc_ip, int(suc_port))
+
         predecessor = requests.get(f"http://{suc_ip}:{suc_port}/get_predecessor").json()
         requests.put(f"http://{suc_ip}:{suc_port}/set_predecessor", params={'node': get_ip_port()})
         requests.put(f"http://{suc_ip}:{suc_port}/set_pred_predecessor", params={'node': predecessor})
-        #proxy_tracker.set_predecessor(self.get_ip_port)
+
         pre_ip, pre_port = predecessor.split(':')
         requests.put(f"http://{pre_ip}:{pre_port}/set_successor", params={'node': get_ip_port()})
         pred_predecessor = requests.get(f"http://{pre_ip}:{pre_port}/get_predecessor").json()
         succ_succesor = requests.get(f"http://{suc_ip}:{suc_port}/get_successor").json()
         succ_succesor_ip, succ_succesor_port = succ_succesor.split(':')
         requests.put(f"http://{succ_succesor_ip}:{succ_succesor_port}/set_pred_predecessor", params={'node': get_ip_port()})
-        # proxy_tracker = self.connect_to(pre_ip, int(pre_port))
-        # proxy_tracker.set_successor(self.get_ip_port)
+
     distribute_information()
         
-#TODO: Fix this method
-def leave(self):
-    successor = self.find_succesor(self.node_id)
-    #connect to succesor
-    tracker_proxy = self.connect_to(successor.split(":")[0], int(successor.split(":")[1]), 'tracker')
-    
-    for key, peers in self.database.items():
-        for ip, port in peers:
-            tracker_proxy.add_to_database(key, ip, int(port))
-    
-    predecessor = self.predecessor
-    successor.set_predecessor(predecessor)
-    #connect to predecesor
-    tracker_proxy = self.connect_to(predecessor.split(":")[0], int(predecessor.split(":")[1]), 'tracker')
-    tracker_proxy.set_succesor(predecessor)
-
-    # maybe this is not necessary
-    self.predecessor = ""
-    self.sucessor = ""
-
 
 @fastapi.put("/set_successor")
 def set_successor(node:str):
@@ -478,22 +425,6 @@ def set_pred_predecessor(node:str):
     global pred_predecessor
     pred_predecessor = node  
 
-
-
-
-# def connect_to(self, ip, port, type_of_peer):
-#     ns = Pyro4.locateNS()
-#     # by default all peers, including tracker are registered in the name server as type_of_peerIP:Port
-#     uri = ns.lookup(f"{type_of_peer}{ip}:{port}")
-#     proxy = Pyro4.Proxy(uri=uri)
-
-#     # try:
-#     #     tracker_proxy._pyroConnection.ping()
-#     #     print(f"Succefuly connection with the TRACKER at {tracker_ip}:{tracker_port}")
-#     # except Pyro4.errors.CommunicationError:
-#     #     print("TRACKER Unreachable")
-
-#     return proxy
 
 if __name__ == '__main__':
     import argparse
@@ -531,19 +462,3 @@ if __name__ == '__main__':
     
     t1.join()
     t2.join()
-
-    
-
-
-
-    #uvicorn.run(fastapi, host=ip, port=port)
-
-
-# tracker = Tracker("127.0.0.1", 6200)
-
-# daemon = Pyro4.Daemon(host=tracker.ip, port= tracker.port)
-# ns = Pyro4.locateNS()
-# uri = daemon.register(tracker)
-# ns.register(f"tracker{tracker.ip}:{tracker.port}", uri)
-# print(f"TRACKER {tracker.ip}:{tracker.port} STARTED")
-# daemon.requestLoop()
