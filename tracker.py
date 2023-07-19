@@ -319,15 +319,6 @@ def distribute_information():
                     add_to_database(int(pieces_sha256), ip, port)
                 requests.delete(f"http://{successor_ip}:{successor_port}/remove_key_from_database", params={'key':int(pieces_sha256)})
 
-        print(node_id)
-        print('mi database')
-        print(database)
-        print('la otra id')
-
-        print(requests.get(f"http://{'127.0.0.1'}:{'6203'}/get_node_id").json())
-        print("La otra database")
-        print(requests.get(f"http://{'127.0.0.1'}:{'6203'}/get_database").json())
-                    
     elif int(pred_id) > node_id:
         succ_database = requests.get(f"http://{successor_ip}:{successor_port}/get_database").json()
         for pieces_sha256, peers in succ_database.items():
@@ -336,15 +327,6 @@ def distribute_information():
                     add_to_database(int(pieces_sha256), ip, port)
                 requests.delete(f"http://{successor_ip}:{successor_port}/remove_key_from_database", params={'key':int(pieces_sha256)})
 
-
-        print(node_id)
-        print('mi database')
-        print(database)
-        print('la otra id')
-
-        print(requests.get(f"http://{'127.0.0.1'}:{'6203'}/get_node_id").json())
-        print("La otra database")
-        print(requests.get(f"http://{'127.0.0.1'}:{'6203'}/get_database").json())
 
     else:
         print('voy a entrar al for')
